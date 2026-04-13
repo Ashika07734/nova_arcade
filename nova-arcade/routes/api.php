@@ -1,10 +1,11 @@
-﻿<?php
+<?php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SurvivalArena\GameplayController;
 use App\Http\Controllers\SurvivalArena\PlayerController;
 use App\Http\Controllers\SurvivalArena\WeaponController;
 use App\Http\Controllers\SurvivalArena\StatsController;
+use App\Http\Controllers\Web\LeaderboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +14,7 @@ use App\Http\Controllers\SurvivalArena\StatsController;
 */
 
 Route::middleware(['auth:sanctum'])->group(function () {
+    
     
     Route::prefix('survival-arena')->name('survival-arena.')->group(function () {
         
@@ -53,3 +55,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
             ->name('leaderboards');
     });
 });
+// Leaderboards
+Route::get('/leaderboards', [LeaderboardController::class, 'index'])
+    ->name('leaderboards.index');
+
+Route::get('/leaderboards/{period}/{category}', [LeaderboardController::class, 'show'])
+    ->name('leaderboards.show');
+
+Route::get('/leaderboards/user/{user}', [LeaderboardController::class, 'userRank'])
+    ->name('leaderboards.user');

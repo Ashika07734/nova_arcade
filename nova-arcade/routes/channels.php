@@ -1,7 +1,7 @@
-﻿<?php
+<?php
 
 use Illuminate\Support\Facades\Broadcast;
-use App\Models\SurvivalArena\Match;
+use App\Models\SurvivalArena\ArenaMatch;
 
 /*
 |--------------------------------------------------------------------------
@@ -11,7 +11,7 @@ use App\Models\SurvivalArena\Match;
 
 // Match channel - only players in match can listen
 Broadcast::channel('survival-arena.match.{matchId}', function ($user, $matchId) {
-    $match = Match::find($matchId);
+    $match = ArenaMatch::find($matchId);
     
     if (!$match) {
         return false;

@@ -9,7 +9,7 @@
         "preview": "vite preview"
     },
     "devDependencies": {
-        "@vitejs/plugin-laravel": "^1.0.0",
+        "@vitejs/plugin-vue": "^5.0.0",
         "autoprefixer": "^10.4.16",
         "axios": "^1.6.2",
         "laravel-vite-plugin": "^1.0.0",

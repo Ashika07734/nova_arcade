@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\LeaderboardController;
+use App\Http\Controllers\SurvivalArena\InventoryController;
 use App\Http\Controllers\SurvivalArena\MatchController;
 use App\Http\Controllers\SurvivalArena\LobbyController;
 
@@ -16,28 +17,42 @@ use App\Http\Controllers\SurvivalArena\LobbyController;
 
 // Public Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/about', [HomeController::class, 'about'])->name('about');
+Route::get('/how-to-play', [HomeController::class, 'howToPlay'])->name('how-to-play');
+Route::get('/faq', [HomeController::class, 'faq'])->name('faq');
+Route::get('/stats', [HomeController::class, 'stats'])->name('stats');
+Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy');
+Route::get('/terms', [HomeController::class, 'terms'])->name('terms');
+Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
+Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
+Route::get('/leaderboards', [LeaderboardController::class, 'index'])->name('leaderboards');
 
 // Auth Routes (Laravel Breeze/Jetstream)
 require __DIR__.'/auth.php';
 
 // Authenticated Routes
 Route::middleware(['auth', 'verified'])->group(function () {
-    
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
-    
-    // Profile
+
+    // Profile and account
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
     Route::get('/profile/{username}', [ProfileController::class, 'show'])
         ->name('profile.show');
     Route::get('/settings', [ProfileController::class, 'settings'])
         ->name('settings');
     Route::post('/settings', [ProfileController::class, 'update'])
         ->name('settings.update');
-    
-    // Leaderboards
-    Route::get('/leaderboards', [LeaderboardController::class, 'index'])
-        ->name('leaderboards');
+
+    // Inventory
+    Route::get('/inventory', [InventoryController::class, 'index'])
+        ->name('inventory');
+    Route::post('/inventory/equip', [InventoryController::class, 'equip'])
+        ->name('inventory.equip');
+    Route::post('/inventory/unequip', [InventoryController::class, 'unequip'])
+        ->name('inventory.unequip');
     
     // Survival Arena Game Routes
     Route::prefix('survival-arena')->name('survival-arena.')->group(function () {

@@ -1,5 +1,4 @@
-﻿// placeholder
-// public/games/survival-arena-3d/js/config.js
+﻿// public/games/survival-arena-3d/js/config.js
 
 export const GAME_CONFIG = {
     // Server settings (from window.gameData)

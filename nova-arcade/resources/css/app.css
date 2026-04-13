@@ -1,12 +1,90 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source "../**/*.blade.php";
-@source "../**/*.js";
-@source "../**/*.vue";
+@layer base {
+	:root {
+		color-scheme: dark;
+	}
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+	html {
+		scroll-behavior: smooth;
+	}
+
+	body {
+		@apply min-h-screen bg-slate-950 text-slate-100 antialiased;
+		background:
+			radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 28%),
+			radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 26%),
+			radial-gradient(circle at bottom center, rgba(59, 130, 246, 0.10), transparent 30%),
+			linear-gradient(180deg, #020617 0%, #0b1120 45%, #020617 100%);
+	}
+
+	::selection {
+		background: rgba(34, 211, 238, 0.28);
+		color: #f8fafc;
+	}
+
+	a {
+		@apply transition-colors duration-200;
+	}
+}
+
+@layer components {
+	.page-shell {
+		@apply relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+	}
+
+	.page-section {
+		@apply py-16 sm:py-20;
+	}
+
+	.panel {
+		@apply rounded-[1.75rem] border border-slate-800/80 bg-slate-900/70 shadow-2xl shadow-slate-950/30 backdrop-blur-xl;
+	}
+
+	.panel-strong {
+		@apply rounded-[1.75rem] border border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl;
+	}
+
+	.hero-title {
+		@apply font-black tracking-tight text-white;
+		font-family: 'Orbitron', 'Rajdhani', ui-sans-serif, system-ui, sans-serif;
+	}
+
+	.eyebrow {
+		@apply text-xs font-semibold uppercase tracking-[0.42em] text-cyan-300;
+	}
+
+	.metric-card {
+		@apply rounded-2xl border border-slate-800 bg-slate-950/80 p-5 shadow-lg shadow-slate-950/20;
+	}
+
+	.action-card {
+		@apply rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-950/20;
+	}
+
+	.chip {
+		@apply inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-slate-300;
+	}
+
+	.surface-input {
+		@apply w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-white outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20;
+	}
+
+	.surface-select {
+		@apply w-full appearance-none rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-white outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20;
+	}
+
+	.surface-button {
+		@apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 font-bold text-slate-950 transition hover:brightness-110 hover:shadow-lg hover:shadow-cyan-950/30;
+	}
+
+	.surface-button-secondary {
+		@apply inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/70 px-5 py-3 font-bold text-white transition hover:border-slate-500 hover:bg-slate-900;
+	}
+
+	.flash-toast {
+		@apply rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-xl;
+	}
 }

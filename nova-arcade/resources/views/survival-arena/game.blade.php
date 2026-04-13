@@ -18,7 +18,7 @@
         <!-- Top Bar -->
         <div class="hud-top">
             <div class="player-count">
-                <span class="icon">👥</span>
+                <span class="icon">PLY</span>
                 <span id="alive-count">{{ $match->current_players }}</span> Alive
             </div>
             
@@ -87,7 +87,7 @@
             </div>
             
             <div class="kills-counter">
-                <span class="kills-icon">💀</span>
+                <span class="kills-icon">K</span>
                 <span id="kills-count">0</span> Kills
             </div>
         </div>

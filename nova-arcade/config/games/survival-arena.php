@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 return [
     'name' => 'Survival Arena 3D',
@@ -40,6 +40,12 @@ return [
     
     'matchmaking' => [
         'min_players' => 2,
+        'min_players_by_mode' => [
+            'solo' => 1,
+            'duo' => 2,
+            'squad' => 4,
+        ],
+        'stale_in_progress_minutes' => 30,
         'max_players' => 50,
         'start_delay' => 10,
         'max_wait_time' => 60,
