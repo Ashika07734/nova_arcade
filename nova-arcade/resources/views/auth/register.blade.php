@@ -5,24 +5,24 @@
 @section('content')
 <div class="page-shell page-section">
     <div class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-        <aside class="panel-strong overflow-hidden p-8 sm:p-10">
+        <aside class="panel-strong overflow-hidden p-8 sm:p-10 scroll-reveal" data-tilt data-tilt-intensity="3">
             <div class="eyebrow">Join the arena</div>
             <h1 class="hero-title mt-4 text-4xl leading-tight">Create your account and start tracking progress.</h1>
             <p class="mt-4 max-w-xl text-slate-300">Unlock inventory, record match history, and appear on the leaderboards from the first session.</p>
 
             <div class="mt-8 grid gap-4">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)]" style="box-shadow: var(--inner-depth);">
                     <div class="text-sm text-slate-400">Custom profile</div>
                     <div class="mt-1 font-semibold text-white">Set a username, avatar, and bio right away.</div>
                 </div>
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-[0_10px_25px_rgba(0,0,0,0.3)]" style="box-shadow: var(--inner-depth);">
                     <div class="text-sm text-slate-400">Ready for battle</div>
                     <div class="mt-1 font-semibold text-white">The moment you register, the dashboard is ready.</div>
                 </div>
             </div>
         </aside>
 
-        <div class="panel p-8 sm:p-10">
+        <div class="panel p-8 sm:p-10 scroll-reveal scroll-reveal-delay-1" data-tilt data-tilt-intensity="3">
             <div class="mb-8">
                 <div class="chip mb-4 w-fit">New account</div>
                 <h2 class="text-3xl font-black text-white">Register</h2>

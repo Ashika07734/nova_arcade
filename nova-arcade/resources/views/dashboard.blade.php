@@ -21,7 +21,8 @@
 @endphp
 
 <div class="page-shell page-section space-y-8 dash-bg">
-    <section class="panel-strong overflow-hidden dash-glass-main hero-strip">
+    <!-- Hero Strip -->
+    <section class="panel-strong overflow-hidden dash-glass-main hero-strip scroll-reveal" data-tilt data-tilt-intensity="2">
         <div class="hero-overlay"></div>
         <div class="hero-grid">
             <div class="hero-left">
@@ -55,26 +56,28 @@
         </div>
     </section>
 
+    <!-- Quick Action Cards (3D tilt) -->
     <section class="grid gap-6 md:grid-cols-3">
-        <a href="{{ route('survival-arena.matchmaking') }}" class="action-card dash-glass-card">
+        <a href="{{ route('survival-arena.matchmaking') }}" class="action-card dash-glass-card scroll-reveal" data-tilt data-tilt-intensity="8">
             <div class="eyebrow">Action</div>
             <div class="mt-3 text-2xl font-bold text-white">Quick Play</div>
             <p class="mt-2 text-sm text-slate-400">Find a match instantly.</p>
         </a>
-        <a href="{{ route('survival-arena.matches.create') }}" class="action-card dash-glass-card">
+        <a href="{{ route('survival-arena.matches.create') }}" class="action-card dash-glass-card scroll-reveal scroll-reveal-delay-1" data-tilt data-tilt-intensity="8">
             <div class="eyebrow">Action</div>
             <div class="mt-3 text-2xl font-bold text-white">Create Match</div>
             <p class="mt-2 text-sm text-slate-400">Host a private or public room.</p>
         </a>
-        <a href="{{ route('inventory') }}" class="action-card dash-glass-card">
+        <a href="{{ route('inventory') }}" class="action-card dash-glass-card scroll-reveal scroll-reveal-delay-2" data-tilt data-tilt-intensity="8">
             <div class="eyebrow">Action</div>
             <div class="mt-3 text-2xl font-bold text-white">Inventory</div>
             <p class="mt-2 text-sm text-slate-400">Manage cosmetics and unlocks.</p>
         </a>
     </section>
 
+    <!-- Stats & Missions -->
     <section class="grid gap-8 lg:grid-cols-3">
-        <div class="panel p-6 lg:col-span-2 dash-glass-main mission-stack">
+        <div class="panel p-6 lg:col-span-2 dash-glass-main mission-stack scroll-reveal">
             <div class="stats-half">
                 <div class="hero-stats-title">Player Stats</div>
                 <div class="hero-stat-grid">
@@ -118,7 +121,7 @@
 
                 <div class="mt-6 space-y-3">
                     @forelse ($dailyMissions as $mission)
-                        <div class="rounded-2xl border border-slate-700/70 bg-slate-900/40 p-4 backdrop-blur-md">
+                        <div class="rounded-2xl border border-slate-700/70 bg-slate-900/40 p-4 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
                             <div class="flex items-center justify-between gap-4">
                                 <div>
                                     <div class="font-semibold text-white">{{ $mission->description }}</div>
@@ -128,8 +131,8 @@
                                     {{ $mission->progress }}/{{ $mission->target }}
                                 </div>
                             </div>
-                            <div class="mt-3 h-2 rounded-full bg-slate-800">
-                                <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500" style="width: {{ min(100, ($mission->progress / max(1, $mission->target)) * 100) }}%"></div>
+                            <div class="mt-3 h-2 rounded-full bg-slate-800" style="box-shadow: var(--inner-depth);">
+                                <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-700" style="width: {{ min(100, ($mission->progress / max(1, $mission->target)) * 100) }}%; box-shadow: 0 0 10px rgba(16,185,129,0.3);"></div>
                             </div>
                         </div>
                     @empty
@@ -139,7 +142,8 @@
             </div>
         </div>
 
-        <div class="panel p-6 dash-glass-main">
+        <!-- Sidebar -->
+        <div class="panel p-6 dash-glass-main scroll-reveal scroll-reveal-delay-1">
             <div class="eyebrow">Queue</div>
             <h2 class="mt-3 text-2xl font-black text-white">Live platform activity</h2>
             <div class="mt-5 overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/80">
@@ -150,7 +154,7 @@
                 >
             </div>
             <div class="mt-6 grid gap-3 sm:grid-cols-2">
-                <div class="mini-metric border-cyan-400/20 bg-cyan-500/10">
+                <div class="mini-metric border-cyan-400/20 bg-cyan-500/10 animate-glow-pulse">
                     <div class="text-sm text-slate-300">Active matches</div>
                     <div class="mt-2 text-4xl font-black text-cyan-300">{{ number_format($activeMatches) }}</div>
                 </div>
@@ -168,11 +172,11 @@
                 </div>
             </div>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30">
                     <div class="text-sm text-slate-400">Best stat</div>
                     <div class="mt-2 text-xl font-bold text-white">{{ number_format((int) ($stats->highest_kills_match ?? 0)) }} kills in one match</div>
                 </div>
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30">
                     <div class="text-sm text-slate-400">Total damage</div>
                     <div class="mt-2 text-xl font-bold text-white">{{ number_format($totalDamage) }}</div>
                 </div>
@@ -180,30 +184,24 @@
         </div>
     </section>
 
+    <!-- Stat Metric Cards -->
     <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div class="metric-card">
-            <div class="text-sm text-slate-400">Matches</div>
-            <div class="mt-2 text-3xl font-black text-white">{{ number_format($totalMatches) }}</div>
-            <div class="mt-2 text-sm text-slate-500">Completed arenas played.</div>
-        </div>
-        <div class="metric-card">
-            <div class="text-sm text-slate-400">Kills</div>
-            <div class="mt-2 text-3xl font-black text-cyan-300">{{ number_format($kills) }}</div>
-            <div class="mt-2 text-sm text-slate-500">Total eliminations recorded.</div>
-        </div>
-        <div class="metric-card">
-            <div class="text-sm text-slate-400">Top 10s</div>
-            <div class="mt-2 text-3xl font-black text-emerald-300">{{ number_format($topTen) }}</div>
-            <div class="mt-2 text-sm text-slate-500">Consistent deep runs.</div>
-        </div>
-        <div class="metric-card">
-            <div class="text-sm text-slate-400">Deaths</div>
-            <div class="mt-2 text-3xl font-black text-rose-300">{{ number_format($deaths) }}</div>
-            <div class="mt-2 text-sm text-slate-500">Times eliminated in the arena.</div>
-        </div>
+        @foreach([
+            ['label' => 'Matches', 'value' => $totalMatches, 'color' => 'text-white', 'desc' => 'Completed arenas played.'],
+            ['label' => 'Kills', 'value' => $kills, 'color' => 'text-cyan-300', 'desc' => 'Total eliminations recorded.'],
+            ['label' => 'Top 10s', 'value' => $topTen, 'color' => 'text-emerald-300', 'desc' => 'Consistent deep runs.'],
+            ['label' => 'Deaths', 'value' => $deaths, 'color' => 'text-rose-300', 'desc' => 'Times eliminated in the arena.'],
+        ] as $i => $metric)
+            <div class="metric-card scroll-reveal scroll-reveal-delay-{{ $i + 1 }}">
+                <div class="text-sm text-slate-400">{{ $metric['label'] }}</div>
+                <div class="mt-2 text-3xl font-black {{ $metric['color'] }}">{{ number_format($metric['value']) }}</div>
+                <div class="mt-2 text-sm text-slate-500">{{ $metric['desc'] }}</div>
+            </div>
+        @endforeach
     </section>
 
-    <section class="panel p-6 dash-glass-main">
+    <!-- Recent Matches -->
+    <section class="panel p-6 dash-glass-main scroll-reveal">
         <div class="flex items-center justify-between gap-4">
             <div>
                 <div class="eyebrow">Recent matches</div>
@@ -213,7 +211,7 @@
 
         <div class="mt-6 space-y-3">
             @forelse ($recentMatches as $entry)
-                <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700/70 bg-slate-900/40 p-4 backdrop-blur-md">
+                <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700/70 bg-slate-900/40 p-4 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
                     <div>
                         <div class="font-semibold text-white">Match {{ $entry->match?->match_code ?? 'Unknown' }}</div>
                         <div class="text-sm text-slate-400">{{ ucfirst($entry->match?->game_mode ?? 'solo') }} | {{ $entry->created_at->diffForHumans() }} | {{ number_format((int) ($entry->kills ?? 0)) }} kills</div>
@@ -292,6 +290,7 @@
         border: 1px solid rgba(56, 189, 248, 0.22);
         overflow: hidden;
         background: rgba(2, 6, 23, 0.45);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .hero-left::before {
@@ -311,6 +310,12 @@
         background:
             linear-gradient(160deg, rgba(2, 6, 23, 0.48), rgba(2, 6, 23, 0.7)),
             url("{{ asset('assets/images/soldier.png') }}") center/cover no-repeat;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transition: transform 0.5s ease;
+    }
+
+    .hero-center:hover {
+        transform: scale(1.02);
     }
 
     .hero-stats-title {
@@ -319,6 +324,7 @@
         letter-spacing: 0.18em;
         color: #cbd5e1;
         font-weight: 700;
+        text-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
     }
 
     .hero-stat-grid {
@@ -333,6 +339,14 @@
         border: 1px solid rgba(51, 65, 85, 0.8);
         background: rgba(15, 23, 42, 0.5);
         padding: 0.7rem;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-stat-box:hover {
+        border-color: rgba(34, 211, 238, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(34, 211, 238, 0.08);
     }
 
     .hero-stat-box span {
@@ -357,6 +371,7 @@
         border: 1px solid rgba(51, 65, 85, 0.8);
         background: rgba(15, 23, 42, 0.5);
         padding: 0.7rem;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .hero-level-track {
@@ -364,21 +379,19 @@
         border-radius: 999px;
         background: rgba(30, 41, 59, 0.95);
         overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
     }
 
     .hero-level-fill {
         height: 100%;
         border-radius: 999px;
         background: linear-gradient(90deg, #06b6d4, #22d3ee);
+        box-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+        transition: width 1s ease;
     }
 
-    .stats-half {
-        min-height: 48%;
-    }
-
-    .mission-half {
-        min-height: 48%;
-    }
+    .stats-half { min-height: 48%; }
+    .mission-half { min-height: 48%; }
 
     .hero-cta-primary,
     .hero-cta-secondary {
@@ -392,12 +405,23 @@
         letter-spacing: 0.1em;
         font-size: 0.76rem;
         border: 1px solid rgba(51, 65, 85, 0.8);
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     }
 
     .hero-cta-primary {
         background: linear-gradient(90deg, #06b6d4, #22d3ee);
         color: #082f49;
         border-color: rgba(34, 211, 238, 0.6);
+        box-shadow: 0 4px 15px rgba(34, 211, 238, 0.25);
+    }
+
+    .hero-cta-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(34, 211, 238, 0.35);
+    }
+
+    .hero-cta-primary:active {
+        transform: translateY(1px) scale(0.98);
     }
 
     .hero-cta-secondary {
@@ -405,13 +429,27 @@
         color: #e2e8f0;
     }
 
+    .hero-cta-secondary:hover {
+        transform: translateY(-2px);
+        border-color: rgba(148, 163, 184, 0.4);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
     .hero-quick-stat,
-    .mini-metric,
-    .metric-card {
+    .mini-metric {
         border-radius: 1rem;
         border: 1px solid rgba(148, 163, 184, 0.16);
         background: rgba(15, 23, 42, 0.42);
         padding: 0.9rem 1rem;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+
+    .hero-quick-stat:hover,
+    .mini-metric:hover {
+        transform: translateY(-3px);
+        border-color: rgba(34, 211, 238, 0.25);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     }
 
     .hero-quick-stat span {

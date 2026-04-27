@@ -9,10 +9,11 @@
 @endphp
 
 <div class="page-shell page-section space-y-10">
-    <section class="panel-strong overflow-hidden">
+    <!-- Hero Section with 3D tilt -->
+    <section class="panel-strong overflow-hidden scroll-reveal" data-tilt data-tilt-intensity="3" style="box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 40px rgba(34,211,238,0.06);">
         <div class="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
             <div class="p-8 sm:p-10 lg:p-14">
-                <div class="chip mb-5 w-fit">Browser battle royale</div>
+                <div class="chip mb-5 w-fit animate-glow-pulse">Browser battle royale</div>
                 <h1 class="hero-title max-w-4xl text-5xl leading-tight sm:text-6xl lg:text-7xl">
                     Survive the arena, earn the crown, keep your loadout.
                 </h1>
@@ -46,7 +47,7 @@
             </div>
 
             <div class="border-t border-slate-800/80 bg-slate-950/50 p-8 sm:p-10 lg:border-l lg:border-t-0 lg:p-12">
-                <div class="rounded-[1.5rem] border border-slate-800 bg-slate-950/80 p-6">
+                <div class="rounded-[1.5rem] border border-slate-800 bg-slate-950/80 p-6" style="box-shadow: var(--inner-depth);">
                     <div class="eyebrow">Live snapshot</div>
                     <div class="mt-4 space-y-4 text-sm text-slate-300">
                         <div class="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3">
@@ -57,7 +58,7 @@
                             <span>Matchmaking pool</span>
                             <span class="font-bold text-cyan-300">Solo / Duo / Squad</span>
                         </div>
-                        <div class="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 text-cyan-100">
+                        <div class="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 text-cyan-100 animate-glow-pulse">
                             The arena rotates zone pressure, loot, and ranking pressure into a short-session loop.
                         </div>
                     </div>
@@ -79,22 +80,24 @@
         </div>
     </section>
 
+    <!-- Feature Cards with staggered 3D entrance -->
     <section class="grid gap-6 md:grid-cols-3">
         @foreach([
             ['icon' => '01', 'title' => 'Real-time Combat', 'desc' => 'Smooth 3D gameplay and immediate state updates keep each match fast and readable.'],
             ['icon' => '02', 'title' => 'Match Persistence', 'desc' => 'Stats, inventory, and recent match history are stored on the account.'],
             ['icon' => '03', 'title' => 'Competitive Loop', 'desc' => 'Leaderboards and progression make every session feed the next one.'],
-        ] as $feature)
-            <article class="action-card">
-                <div class="text-3xl font-black text-cyan-300">{{ $feature['icon'] }}</div>
+        ] as $i => $feature)
+            <article class="action-card scroll-reveal scroll-reveal-delay-{{ $i + 1 }}" data-tilt data-tilt-intensity="6">
+                <div class="text-3xl font-black text-cyan-300" style="text-shadow: 0 0 20px rgba(34,211,238,0.3);">{{ $feature['icon'] }}</div>
                 <h2 class="mt-4 text-2xl font-bold text-white">{{ $feature['title'] }}</h2>
                 <p class="mt-3 text-sm leading-7 text-slate-400">{{ $feature['desc'] }}</p>
             </article>
         @endforeach
     </section>
 
+    <!-- Game Modes & Hall of Fame -->
     <section class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div class="panel p-6 sm:p-8">
+        <div class="panel p-6 sm:p-8 scroll-reveal">
             <div class="flex items-end justify-between gap-4">
                 <div>
                     <div class="eyebrow">Game modes</div>
@@ -105,7 +108,7 @@
 
             <div class="mt-6 grid gap-4 md:grid-cols-3">
                 @foreach($gameModes as $mode)
-                    <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 {{ $mode['available'] ? 'hover:border-cyan-400/50' : 'opacity-70' }} transition">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 {{ $mode['available'] ? 'hover:border-cyan-400/50 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.3)]' : 'opacity-70' }} transition-all duration-300" style="box-shadow: var(--inner-depth);">
                         <div class="text-sm uppercase tracking-[0.3em] text-cyan-300">{{ $mode['icon'] }}</div>
                         <div class="mt-3 text-xl font-bold text-white">{{ $mode['name'] }}</div>
                         <p class="mt-2 text-sm leading-6 text-slate-400">{{ $mode['description'] }}</p>
@@ -115,14 +118,14 @@
             </div>
         </div>
 
-        <div class="panel p-6 sm:p-8">
+        <div class="panel p-6 sm:p-8 scroll-reveal scroll-reveal-delay-1">
             <div class="eyebrow">Hall of fame</div>
             <h2 class="mt-3 text-3xl font-black text-white">Top warriors this season.</h2>
 
             <div class="mt-6 space-y-4">
                 @foreach($topPlayers as $index => $entry)
-                    <div class="flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-lg font-black text-cyan-300">
+                    <div class="flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]" style="transform: translateZ({{ (3 - $index) * 2 }}px);">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-lg font-black text-cyan-300" style="{{ $index === 0 ? 'box-shadow: 0 0 20px rgba(34,211,238,0.3); border-color: rgba(34,211,238,0.5);' : '' }}">
                             {{ $index + 1 }}
                         </div>
                         <img src="{{ $entry->user->avatar_url }}" alt="{{ $entry->user->username }}" class="h-12 w-12 rounded-full border border-slate-700 object-cover">
@@ -140,7 +143,8 @@
         </div>
     </section>
 
-    <section class="panel p-6 sm:p-8">
+    <!-- Recent Matches -->
+    <section class="panel p-6 sm:p-8 scroll-reveal">
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
                 <div class="eyebrow">Recent matches</div>
@@ -151,7 +155,7 @@
 
         <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @forelse($recentMatches as $match)
-                <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-[0_15px_40px_rgba(0,0,0,0.3)]">
                     <div class="flex items-center justify-between gap-3">
                         <div>
                             <div class="text-sm uppercase tracking-[0.3em] text-cyan-300">{{ ucfirst($match->game_mode) }}</div>
@@ -169,15 +173,3 @@
     </section>
 </div>
 @endsection
-
-@push('styles')
-<style>
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-20px); }
-    }
-    .animate-float {
-        animation: float 3s ease-in-out infinite;
-    }
-</style>
-@endpush

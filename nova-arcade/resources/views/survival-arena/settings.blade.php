@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="page-shell page-section">
-    <div class="panel-strong mx-auto max-w-4xl p-8 sm:p-10">
+    <div class="panel-strong mx-auto max-w-4xl p-8 sm:p-10 scroll-reveal" data-tilt data-tilt-intensity="3">
         <div class="eyebrow">Settings</div>
         <h1 class="hero-title mt-4 text-4xl sm:text-5xl">Account preferences and profile information.</h1>
 
@@ -33,4 +33,3 @@
     </div>
 </div>
 @endsection
-

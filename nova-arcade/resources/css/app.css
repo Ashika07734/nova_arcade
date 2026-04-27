@@ -2,9 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════
+   3D DESIGN SYSTEM — NOVA ARCADE
+   ═══════════════════════════════════════════ */
+
 @layer base {
 	:root {
 		color-scheme: dark;
+		--perspective: 1200px;
+		--card-rotate: 2deg;
+		--glow-cyan: rgba(34, 211, 238, 0.4);
+		--glow-emerald: rgba(16, 185, 129, 0.4);
+		--glow-violet: rgba(139, 92, 246, 0.35);
+		--glow-rose: rgba(244, 63, 94, 0.35);
+		--glow-amber: rgba(245, 158, 11, 0.35);
+		--depth-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.55), 0 8px 20px -6px rgba(0, 0, 0, 0.4);
+		--depth-shadow-hover: 0 35px 70px -12px rgba(0, 0, 0, 0.6), 0 18px 36px -8px rgba(0, 0, 0, 0.45);
+		--inner-depth: inset 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 -1px 2px rgba(255, 255, 255, 0.04);
 	}
 
 	html {
@@ -13,11 +27,7 @@
 
 	body {
 		@apply min-h-screen bg-slate-950 text-slate-100 antialiased;
-		background:
-			radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 28%),
-			radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 26%),
-			radial-gradient(circle at bottom center, rgba(59, 130, 246, 0.10), transparent 30%),
-			linear-gradient(180deg, #020617 0%, #0b1120 45%, #020617 100%);
+		background: #020617;
 	}
 
 	::selection {
@@ -28,9 +38,18 @@
 	a {
 		@apply transition-colors duration-200;
 	}
+
+	/* Custom scrollbar */
+	::-webkit-scrollbar { width: 8px; }
+	::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.8); }
+	::-webkit-scrollbar-thumb {
+		background: linear-gradient(180deg, #06b6d4, #10b981);
+		border-radius: 999px;
+	}
 }
 
 @layer components {
+	/* ── Layout ── */
 	.page-shell {
 		@apply relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
 	}
@@ -39,52 +58,367 @@
 		@apply py-16 sm:py-20;
 	}
 
+	.perspective-scene {
+		perspective: var(--perspective);
+		transform-style: preserve-3d;
+	}
+
+	/* ── Panels (3D enhanced) ── */
 	.panel {
-		@apply rounded-[1.75rem] border border-slate-800/80 bg-slate-900/70 shadow-2xl shadow-slate-950/30 backdrop-blur-xl;
+		@apply rounded-[1.75rem] border border-slate-800/80 bg-slate-900/70 backdrop-blur-xl;
+		box-shadow: var(--depth-shadow);
+		transform-style: preserve-3d;
+		transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.45s ease;
+	}
+
+	.panel:hover {
+		box-shadow: var(--depth-shadow-hover);
 	}
 
 	.panel-strong {
-		@apply rounded-[1.75rem] border border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl;
+		@apply rounded-[1.75rem] border border-slate-700/80 bg-slate-950/80 backdrop-blur-xl;
+		box-shadow: var(--depth-shadow), 0 0 30px rgba(34, 211, 238, 0.06);
+		transform-style: preserve-3d;
+		transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.45s ease;
 	}
 
+	/* ── Hero Title ── */
 	.hero-title {
 		@apply font-black tracking-tight text-white;
 		font-family: 'Orbitron', 'Rajdhani', ui-sans-serif, system-ui, sans-serif;
+		text-shadow: 0 0 40px rgba(34, 211, 238, 0.15), 0 2px 4px rgba(0, 0, 0, 0.3);
 	}
 
 	.eyebrow {
 		@apply text-xs font-semibold uppercase tracking-[0.42em] text-cyan-300;
+		text-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
 	}
 
+	/* ── Metric Card (3D pop) ── */
 	.metric-card {
-		@apply rounded-2xl border border-slate-800 bg-slate-950/80 p-5 shadow-lg shadow-slate-950/20;
+		@apply rounded-2xl border border-slate-800 bg-slate-950/80 p-5;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(148, 163, 184, 0.06);
+		transform: translateZ(0);
+		transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s ease, border-color 0.4s ease;
 	}
 
+	.metric-card:hover {
+		transform: translateY(-6px) scale(1.02);
+		box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 20px rgba(34, 211, 238, 0.1);
+		border-color: rgba(34, 211, 238, 0.3);
+	}
+
+	/* ── Action Card (3D tilt) ── */
 	.action-card {
-		@apply rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-400/60 hover:shadow-xl hover:shadow-cyan-950/20;
+		@apply rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+		transform: perspective(800px) translateZ(0);
+		transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+		position: relative;
+		overflow: hidden;
 	}
 
+	.action-card::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, transparent 50%);
+		opacity: 0;
+		transition: opacity 0.4s ease;
+		pointer-events: none;
+	}
+
+	.action-card:hover {
+		transform: perspective(800px) translateY(-8px) rotateX(2deg);
+		box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), 0 0 30px rgba(34, 211, 238, 0.08);
+		border-color: rgba(34, 211, 238, 0.5);
+	}
+
+	.action-card:hover::before {
+		opacity: 1;
+	}
+
+	/* ── Chip ── */
 	.chip {
 		@apply inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-slate-300;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(148, 163, 184, 0.05);
 	}
 
+	/* ── Inputs (3D depth) ── */
 	.surface-input {
-		@apply w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-white outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20;
+		@apply w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-white outline-none transition;
+		box-shadow: var(--inner-depth);
+		transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+	}
+
+	.surface-input:focus {
+		@apply border-cyan-400;
+		box-shadow: var(--inner-depth), 0 0 0 3px rgba(34, 211, 238, 0.15), 0 0 20px rgba(34, 211, 238, 0.1);
+		transform: translateY(-1px);
 	}
 
 	.surface-select {
-		@apply w-full appearance-none rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-white outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20;
+		@apply w-full appearance-none rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-white outline-none transition;
+		box-shadow: var(--inner-depth);
 	}
 
+	.surface-select:focus {
+		@apply border-cyan-400;
+		box-shadow: var(--inner-depth), 0 0 0 3px rgba(34, 211, 238, 0.15), 0 0 20px rgba(34, 211, 238, 0.1);
+	}
+
+	/* ── Buttons (3D push) ── */
 	.surface-button {
-		@apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 font-bold text-slate-950 transition hover:brightness-110 hover:shadow-lg hover:shadow-cyan-950/30;
+		@apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 font-bold text-slate-950;
+		box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25), 0 2px 6px rgba(0, 0, 0, 0.2);
+		transform: translateZ(0);
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+		position: relative;
+	}
+
+	.surface-button:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 25px rgba(34, 211, 238, 0.15);
+	}
+
+	.surface-button:active {
+		transform: translateY(1px) scale(0.98);
+		box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 	}
 
 	.surface-button-secondary {
-		@apply inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/70 px-5 py-3 font-bold text-white transition hover:border-slate-500 hover:bg-slate-900;
+		@apply inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/70 px-5 py-3 font-bold text-white;
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
+	.surface-button-secondary:hover {
+		@apply border-slate-500 bg-slate-900;
+		transform: translateY(-2px);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35), 0 0 15px rgba(148, 163, 184, 0.06);
+	}
+
+	.surface-button-secondary:active {
+		transform: translateY(1px) scale(0.98);
+	}
+
+	/* ── Flash Toast ── */
 	.flash-toast {
 		@apply rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-xl;
+	}
+
+	/* ── 3D Glow Border ── */
+	.glow-border {
+		position: relative;
+	}
+
+	.glow-border::after {
+		content: '';
+		position: absolute;
+		inset: -1px;
+		border-radius: inherit;
+		background: linear-gradient(135deg, var(--glow-cyan), transparent, var(--glow-emerald));
+		z-index: -1;
+		opacity: 0;
+		transition: opacity 0.5s ease;
+	}
+
+	.glow-border:hover::after {
+		opacity: 1;
+	}
+}
+
+/* ═══════════════════════════════════════════
+   KEYFRAME ANIMATIONS
+   ═══════════════════════════════════════════ */
+
+/* 3D float animation */
+@keyframes float-3d {
+	0%, 100% { transform: translateY(0) rotateX(0deg); }
+	50% { transform: translateY(-12px) rotateX(1.5deg); }
+}
+
+/* Holographic shimmer */
+@keyframes holo-shimmer {
+	0% { background-position: -200% center; }
+	100% { background-position: 200% center; }
+}
+
+/* Glow pulse */
+@keyframes glow-pulse {
+	0%, 100% { box-shadow: 0 0 15px rgba(34, 211, 238, 0.1), 0 0 30px rgba(34, 211, 238, 0.05); }
+	50% { box-shadow: 0 0 25px rgba(34, 211, 238, 0.2), 0 0 50px rgba(34, 211, 238, 0.1); }
+}
+
+/* Scan line */
+@keyframes scan-line {
+	0% { transform: translateY(-100%); }
+	100% { transform: translateY(100%); }
+}
+
+/* Slide up entrance */
+@keyframes slide-up-3d {
+	from {
+		opacity: 0;
+		transform: perspective(800px) translateY(40px) rotateX(-5deg);
+	}
+	to {
+		opacity: 1;
+		transform: perspective(800px) translateY(0) rotateX(0);
+	}
+}
+
+/* Slide in from left */
+@keyframes slide-in-left {
+	from {
+		opacity: 0;
+		transform: translateX(-30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* Pop in */
+@keyframes pop-in {
+	from {
+		opacity: 0;
+		transform: scale(0.85);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* Border gradient sweep */
+@keyframes border-sweep {
+	0% { --sweep-angle: 0deg; }
+	100% { --sweep-angle: 360deg; }
+}
+
+/* Utility classes for animations */
+.animate-float-3d {
+	animation: float-3d 4s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+	animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-holo {
+	background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.12), transparent);
+	background-size: 200% 100%;
+	animation: holo-shimmer 3s linear infinite;
+}
+
+/* Scroll-triggered entrance classes */
+.scroll-reveal {
+	opacity: 0;
+	transform: perspective(800px) translateY(40px) rotateX(-4deg);
+	transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.scroll-reveal.revealed {
+	opacity: 1;
+	transform: perspective(800px) translateY(0) rotateX(0);
+}
+
+.scroll-reveal-delay-1 { transition-delay: 0.1s; }
+.scroll-reveal-delay-2 { transition-delay: 0.2s; }
+.scroll-reveal-delay-3 { transition-delay: 0.3s; }
+.scroll-reveal-delay-4 { transition-delay: 0.4s; }
+
+/* Grid overlay for depth reference */
+.grid-overlay {
+	position: fixed;
+	inset: 0;
+	background-image:
+		linear-gradient(rgba(34, 211, 238, 0.018) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(34, 211, 238, 0.018) 1px, transparent 1px);
+	background-size: 50px 50px;
+	pointer-events: none;
+	z-index: 0;
+	transform: perspective(600px) rotateX(2deg);
+	transform-origin: center 60%;
+	mask-image: radial-gradient(ellipse at center, black 20%, transparent 65%);
+	-webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 65%);
+}
+
+/* Scan line overlay */
+.scan-overlay::after {
+	content: '';
+	position: absolute;
+	left: 0; right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.15), transparent);
+	animation: scan-line 4s linear infinite;
+	pointer-events: none;
+}
+
+/* 3D table */
+.table-3d {
+	transform: perspective(1000px) rotateX(1deg);
+	transform-origin: center top;
+	box-shadow: var(--depth-shadow);
+}
+
+/* Navbar 3D */
+.nav-link-3d {
+	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+	position: relative;
+}
+
+.nav-link-3d:hover {
+	transform: translateY(-1px) scale(1.03);
+	text-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
+}
+
+.nav-link-3d.active::after {
+	content: '';
+	position: absolute;
+	bottom: -2px;
+	left: 20%; right: 20%;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+	border-radius: 999px;
+}
+
+/* Logo 3D */
+.logo-3d {
+	transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.logo-3d:hover {
+	transform: rotateY(15deg) scale(1.05);
+}
+
+/* Dropdown 3D entrance */
+.dropdown-3d {
+	transform-origin: top center;
+	animation: dropdown-enter 0.35s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes dropdown-enter {
+	from {
+		opacity: 0;
+		transform: perspective(600px) rotateX(-15deg) translateY(-8px);
+	}
+	to {
+		opacity: 1;
+		transform: perspective(600px) rotateX(0) translateY(0);
+	}
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+	.scroll-reveal {
+		opacity: 1;
+		transform: none;
 	}
 }

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="page-shell page-section">
-    <div class="max-w-md mx-auto panel p-8 sm:p-10">
+    <div class="max-w-md mx-auto panel p-8 sm:p-10 scroll-reveal" data-tilt data-tilt-intensity="4">
         <div class="eyebrow">Secure your account</div>
         <h1 class="mt-4 text-3xl font-black text-white">Choose a new password</h1>
         <p class="mt-2 text-slate-400">Use a strong password you have not used before.</p>
