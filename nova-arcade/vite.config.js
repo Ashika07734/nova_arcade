@@ -6,9 +6,11 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/app.css',
+                'resources/js/app.js',
                 'resources/js/bootstrap.js',
                 'public/games/survival-arena-3d/css/game.css',
-                'public/games/survival-arena-3d/js/main.js'
+                'public/games/survival-arena-3d/js/main.js',
+                'public/games/survival-arena-3d/js/main-city.js'
             ],
             refresh: true,
         }),

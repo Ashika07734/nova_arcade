@@ -183,8 +183,16 @@ class Leaderboard extends Model
         string $period,
         ?string $season = null
     ) {
+        $scoreExpression = match ($category) {
+            'wins' => 'wins',
+            'kills' => 'kills',
+            'kd_ratio' => '(kd_ratio * 100)',
+            'damage' => 'total_damage',
+            default => 'wins',
+        };
+
         $query = DB::table('sa_user_stats')
-            ->select('user_id', DB::raw("$category as score"))
+            ->select('user_id', DB::raw("{$scoreExpression} as score"))
             ->orderByDesc('score');
 
         // Apply period filters

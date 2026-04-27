@@ -15,7 +15,7 @@ class PlayerShot implements ShouldBroadcast
 
     public function __construct(
         public ArenaMatch $match,
-        public int $playerId,
+        public ?int $playerId,
         public array $direction,
         public int $weaponId
     ) {}

@@ -87,7 +87,7 @@ class CollisionService
      */
     private function checkObstacleCollisions(PlayerState $player, ArenaMatch $match): void
     {
-        $obstacles = $match->map_data['obstacles'] ?? [];
+        $obstacles = $match->map_data['collision_boxes'] ?? $match->map_data['obstacles'] ?? [];
         
         foreach ($obstacles as $obstacle) {
             if ($this->isPlayerInObstacle($player->position, $obstacle)) {
@@ -101,7 +101,13 @@ class CollisionService
      */
     private function isPlayerInObstacle(array $position, array $obstacle): bool
     {
+        $playerY = $position['y'] ?? 0;
+        $obstacleY = $obstacle['y'] ?? 0;
+        $obstacleHeight = $obstacle['height'] ?? 10;
+
         return (
+            $playerY >= $obstacleY - 1 &&
+            $playerY <= ($obstacleY + $obstacleHeight) + 1 &&
             $position['x'] > $obstacle['x'] - $obstacle['width'] / 2 - $this->playerRadius &&
             $position['x'] < $obstacle['x'] + $obstacle['width'] / 2 + $this->playerRadius &&
             $position['z'] > $obstacle['z'] - $obstacle['depth'] / 2 - $this->playerRadius &&

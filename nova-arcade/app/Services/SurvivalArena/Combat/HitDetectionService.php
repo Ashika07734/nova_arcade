@@ -30,7 +30,8 @@ class HitDetectionService
                 $shooter->position,
                 $direction,
                 $target,
-                $maxRange
+                $maxRange,
+                $shooter->match->map_data['collision_boxes'] ?? $shooter->match->map_data['obstacles'] ?? []
             );
             
             if ($hit && $hit['distance'] < $minDistance) {
@@ -47,17 +48,47 @@ class HitDetectionService
      */
     private function getPotentialTargets(PlayerState $shooter): array
     {
-        $cacheKey = "match:{$shooter->match_id}:targets:{$shooter->user_id}";
+        $shooterKey = $shooter->user_id ?: ('bot:' . ($shooter->bot_name ?: $shooter->id));
+        $cacheKey = "match:{$shooter->match_id}:targets:{$shooterKey}";
         
         return Cache::remember($cacheKey, now()->addMilliseconds(100), function () use ($shooter) {
-            return PlayerState::where('match_id', $shooter->match_id)
-                ->where('user_id', '!=', $shooter->user_id)
-                ->whereHas('match.players', function ($q) {
-                    $q->where('is_alive', true);
+            $states = PlayerState::where('match_id', $shooter->match_id)
+                ->where('id', '!=', $shooter->id)
+                ->get();
+
+            return $states
+                ->filter(function (PlayerState $state) use ($shooter) {
+                    $isAlive = $this->isStateAlive($state);
+                    if (!$isAlive) {
+                        return false;
+                    }
+
+                    if (($shooter->is_bot ?? false) === true) {
+                        return ($state->is_bot ?? false) === false;
+                    }
+
+                    return true;
                 })
-                ->get()
+                ->map(fn (PlayerState $state) => $state->toArray())
+                ->values()
                 ->toArray();
         });
+    }
+
+    private function isStateAlive(PlayerState $state): bool
+    {
+        if (($state->is_bot ?? false) === true) {
+            return $state->match->players()
+                ->where('is_bot', true)
+                ->where('bot_name', $state->bot_name)
+                ->where('is_alive', true)
+                ->exists();
+        }
+
+        return $state->match->players()
+            ->where('user_id', $state->user_id)
+            ->where('is_alive', true)
+            ->exists();
     }
     
     /**
@@ -67,7 +98,8 @@ class HitDetectionService
         array $origin,
         array $direction,
         array $target,
-        float $maxRange
+        float $maxRange,
+        array $obstacles = []
     ): ?array {
         $targetPos = $target['position'];
         
@@ -110,6 +142,10 @@ class HitDetectionService
         if ($dot > $maxRange) {
             return null;
         }
+
+        if (!$this->hasLineOfSight($origin, $targetPos, $obstacles)) {
+            return null;
+        }
         
         // Calculate closest point on ray to target
         $closestPoint = [
@@ -132,7 +168,7 @@ class HitDetectionService
             
             return [
                 'player' => PlayerState::where('match_id', $target['match_id'])
-                    ->where('user_id', $target['user_id'])
+                    ->where('id', $target['id'])
                     ->first(),
                 'distance' => $dot,
                 'headshot' => $isHeadshot,

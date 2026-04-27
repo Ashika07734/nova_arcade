@@ -50,6 +50,10 @@ return [
         'start_delay' => 10,
         'max_wait_time' => 60,
     ],
+
+    'timing' => [
+        'max_duration_seconds' => 300,
+    ],
     
     // Assets
     'assets' => [

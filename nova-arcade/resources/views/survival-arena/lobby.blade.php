@@ -28,9 +28,15 @@
                 @foreach ($players as $player)
                     <article class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
                         <div class="flex items-center gap-3">
-                            <img src="{{ $player->user->avatar_url }}" class="h-12 w-12 rounded-full border border-slate-700" alt="{{ $player->user->username }}">
+                            @if (!$player->is_bot && !empty($player->user?->avatar_url))
+                                <img src="{{ $player->user->avatar_url }}" class="h-12 w-12 rounded-full border border-slate-700 object-cover" alt="{{ $player->user->username ?? 'Unknown' }}">
+                            @else
+                                <div class="grid h-12 w-12 place-items-center rounded-full border border-slate-700 bg-slate-900 text-xs font-bold uppercase text-slate-300">
+                                    {{ $player->is_bot ? 'BOT' : 'PLY' }}
+                                </div>
+                            @endif
                             <div>
-                                <div class="font-bold text-white">{{ $player->user->username }}</div>
+                                <div class="font-bold text-white">{{ $player->is_bot ? ($player->bot_name ?? 'BOT') : ($player->user->username ?? 'Unknown') }}</div>
                                 <div class="text-sm text-slate-400">Joined {{ $player->joined_at->diffForHumans() }}</div>
                             </div>
                         </div>

@@ -89,7 +89,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         // Game Play
         Route::get('/matches/{match}/play', [MatchController::class, 'play'])
-            ->middleware('check.game.session')
             ->name('play');
         
         // Results

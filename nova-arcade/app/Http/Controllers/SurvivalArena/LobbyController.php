@@ -5,12 +5,17 @@ namespace App\Http\Controllers\SurvivalArena;
 use App\Http\Controllers\Controller;
 use App\Jobs\SurvivalArena\ProcessGameTick;
 use App\Models\SurvivalArena\ArenaMatch;
+use App\Services\SurvivalArena\Match\MatchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class LobbyController extends Controller
 {
+    public function __construct(
+        private MatchService $matchService
+    ) {}
+
     public function show(ArenaMatch $match)
     {
         $isPlayer = $match->players()
@@ -81,6 +86,23 @@ class LobbyController extends Controller
         }
 
         try {
+            if (empty($match->map_data)) {
+                $match->update([
+                    'map_data' => $this->matchService->generateMapData(),
+                ]);
+                $match->refresh();
+            }
+
+            if (($match->mode ?? $match->game_mode) === 'solo') {
+                $this->matchService->spawnBots(
+                    $match,
+                    $match->difficulty ?? 'easy',
+                    (int) $match->bot_count
+                );
+
+                $match->refresh();
+            }
+
             $match->start();
 
             ProcessGameTick::dispatch($match)->delay(now()->addMilliseconds(17));

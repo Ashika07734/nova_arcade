@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SurvivalArena;
 
 use App\Http\Controllers\Controller;
 use App\Models\SurvivalArena\ArenaMatch;
+use App\Services\SurvivalArena\Match\MatchService;
 use App\Services\SurvivalArena\Match\MatchmakingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,13 +40,17 @@ class MatchController extends Controller
     public function joinQueue(Request $request)
     {
         $request->validate([
-            'game_mode' => 'required|in:solo,duo,squad'
+            'game_mode' => 'required|in:solo',
+            'difficulty' => 'nullable|in:easy,medium,hard',
         ]);
 
         try {
+            $difficulty = $request->input('difficulty', 'easy');
+
             $match = $this->matchmakingService->findOrCreateMatch(
                 Auth::user(),
-                $request->game_mode
+                $request->game_mode,
+                $difficulty
             );
 
             return response()->json([
@@ -53,6 +58,9 @@ class MatchController extends Controller
                 'match' => [
                     'id' => $match->id,
                     'match_code' => $match->match_code,
+                    'mode' => $match->mode,
+                    'difficulty' => $match->difficulty,
+                    'bot_count' => $match->bot_count,
                     'current_players' => $match->current_players,
                     'max_players' => $match->max_players,
                     'status' => $match->status
@@ -75,7 +83,15 @@ class MatchController extends Controller
      */
     public function leaveQueue(Request $request)
     {
-        // Implementation would remove user from waiting matches
+        $removed = $this->matchmakingService->removeFromQueue(Auth::user());
+
+        if (!$removed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No queued match found',
+            ], 404);
+        }
+
         return response()->json(['success' => true]);
     }
 
@@ -94,14 +110,26 @@ class MatchController extends Controller
     {
         $validated = $request->validate([
             'room_name' => 'nullable|string|max:50',
-            'game_mode' => 'required|in:solo,duo,squad',
+            'game_mode' => 'required|in:solo',
             'max_players' => 'required|integer|min:2|max:50',
-            'is_public' => 'required|boolean'
+            'is_public' => 'required|boolean',
+            'difficulty' => 'nullable|in:easy,medium,hard',
         ]);
+
+        $difficulty = $validated['difficulty'] ?? 'easy';
+        $botCount = match ($difficulty) {
+            'hard' => 8,
+            'medium' => 5,
+            default => 3,
+        };
 
         $match = ArenaMatch::create([
             'game_mode' => $validated['game_mode'],
-            'max_players' => $validated['max_players'],
+            'mode' => 'solo',
+            'difficulty' => $difficulty,
+            'bot_count' => $botCount,
+            'max_players' => 1 + $botCount,
+            'map_data' => app(MatchService::class)->generateMapData(),
             'status' => 'waiting'
         ]);
 

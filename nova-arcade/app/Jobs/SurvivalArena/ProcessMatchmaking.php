@@ -3,6 +3,7 @@
 namespace App\Jobs\SurvivalArena;
 
 use App\Models\SurvivalArena\ArenaMatch;
+use App\Services\SurvivalArena\Match\MatchService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -84,6 +85,16 @@ class ProcessMatchmaking implements ShouldQueue
     private function startMatch(): void
     {
         try {
+            if (($this->match->mode ?? $this->match->game_mode) === 'solo') {
+                app(MatchService::class)->spawnBots(
+                    $this->match,
+                    $this->match->difficulty ?? 'easy',
+                    (int) $this->match->bot_count
+                );
+
+                $this->match->refresh();
+            }
+
             $this->match->start();
 
             Log::info('Match started via matchmaking', [

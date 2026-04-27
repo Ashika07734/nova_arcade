@@ -13,6 +13,9 @@ class MatchPlayer extends Model
     protected $fillable = [
         'match_id',
         'user_id',
+        'is_bot',
+        'bot_name',
+        'bot_difficulty',
         'team_id',
         'kills',
         'deaths',
@@ -21,6 +24,9 @@ class MatchPlayer extends Model
         'headshots',
         'placement',
         'xp_earned',
+        'score',
+        'shots_fired',
+        'shots_hit',
         'survival_time',
         'final_position',
         'is_alive',
@@ -29,6 +35,7 @@ class MatchPlayer extends Model
     ];
 
     protected $casts = [
+        'is_bot' => 'boolean',
         'final_position' => 'array',
         'is_alive' => 'boolean',
         'joined_at' => 'datetime',
@@ -47,6 +54,16 @@ class MatchPlayer extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function scopeBots($query)
+    {
+        return $query->where('is_bot', true);
+    }
+
+    public function scopeHumans($query)
+    {
+        return $query->where('is_bot', false);
+    }
+
     // ========== Methods ==========
     
     public function incrementKills(): void
@@ -57,6 +74,16 @@ class MatchPlayer extends Model
     public function incrementHeadshots(): void
     {
         $this->increment('headshots');
+    }
+
+    public function incrementShotsFired(): void
+    {
+        $this->increment('shots_fired');
+    }
+
+    public function incrementShotsHit(): void
+    {
+        $this->increment('shots_hit');
     }
 
     public function addDamage(int $amount): void
@@ -122,18 +149,20 @@ class MatchPlayer extends Model
         return $xp;
     }
 
-    public function getAccuracyAttribute(): float
-    {
-        // This would require tracking shots fired
-        // For now, return a placeholder
-        return 0.0;
-    }
-
     public function getFormattedSurvivalTimeAttribute(): string
     {
         $minutes = floor($this->survival_time / 60);
         $seconds = $this->survival_time % 60;
 
         return sprintf('%02d:%02d', $minutes, $seconds);
+    }
+
+    public function getAccuracyAttribute(): float
+    {
+        if ($this->shots_fired <= 0) {
+            return 0.0;
+        }
+
+        return ($this->shots_hit / $this->shots_fired) * 100;
     }
 }

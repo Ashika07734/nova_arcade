@@ -3,6 +3,8 @@
 namespace App\Models\SurvivalArena;
 
 use App\Models\User;
+use App\Models\SurvivalArena\MatchPlayer;
+use App\Models\SurvivalArena\Leaderboard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,7 +17,10 @@ class ArenaMatch extends Model
 
     protected $fillable = [
         'match_code',
+        'mode',
         'game_mode',
+        'difficulty',
+        'bot_count',
         'max_players',
         'current_players',
         'status',
@@ -28,7 +33,8 @@ class ArenaMatch extends Model
     protected $casts = [
         'map_data' => 'array',
         'started_at' => 'datetime',
-        'ended_at' => 'datetime'
+        'ended_at' => 'datetime',
+        'bot_count' => 'integer',
     ];
 
     protected static function boot()
@@ -116,6 +122,21 @@ class ArenaMatch extends Model
         return $this;
     }
 
+    public function addBot(string $botName, string $difficulty = 'easy'): MatchPlayer
+    {
+        $botPlayer = $this->players()->create([
+            'user_id' => null,
+            'is_bot' => true,
+            'bot_name' => $botName,
+            'bot_difficulty' => $difficulty,
+            'joined_at' => now(),
+        ]);
+
+        $this->increment('current_players');
+
+        return $botPlayer;
+    }
+
     public function removePlayer(User $user): self
     {
         $this->players()->where('user_id', $user->id)->delete();
@@ -133,7 +154,7 @@ class ArenaMatch extends Model
             'started_at' => now()
         ]);
 
-        foreach ($this->players as $player) {
+        foreach ($this->players()->get() as $player) {
             $this->initializePlayerState($player);
         }
 
@@ -153,7 +174,13 @@ class ArenaMatch extends Model
         ]);
 
         $this->calculatePlacements();
+
+        if (($this->mode ?? $this->game_mode) === 'solo') {
+            $this->calculateSoloScores();
+        }
+
         $this->updateUserStats();
+        $this->refreshLeaderboards();
 
         $this->safeBroadcast(new \App\Events\SurvivalArena\Match\MatchEnded($this));
 
@@ -165,8 +192,43 @@ class ArenaMatch extends Model
         return $this->players()->where('is_alive', true)->count();
     }
 
+    public function getAliveHumans(): int
+    {
+        return $this->players()
+            ->where('is_alive', true)
+            ->where('is_bot', false)
+            ->count();
+    }
+
+    public function getAliveBots(): int
+    {
+        return $this->players()
+            ->where('is_alive', true)
+            ->where('is_bot', true)
+            ->count();
+    }
+
     public function checkWinCondition(): bool
     {
+        if (($this->mode ?? $this->game_mode) === 'solo') {
+            if ($this->getAliveHumans() <= 0) {
+                $this->end(null);
+                return true;
+            }
+
+            if ($this->getAliveBots() <= 0 && $this->getAliveHumans() >= 1) {
+                $winnerPlayer = $this->players()
+                    ->where('is_bot', false)
+                    ->where('is_alive', true)
+                    ->first();
+
+                $this->end($winnerPlayer?->user);
+                return true;
+            }
+
+            return false;
+        }
+
         $alive = $this->getAlivePlayers();
 
         if ($alive <= 1) {
@@ -184,11 +246,14 @@ class ArenaMatch extends Model
 
     protected function initializePlayerState(MatchPlayer $player): void
     {
-        $spawnPosition = $this->getRandomSpawnPosition();
+        $spawnPosition = $this->getSpawnPositionForPlayer($player);
 
         PlayerState::create([
             'match_id' => $this->id,
             'user_id' => $player->user_id,
+            'is_bot' => $player->is_bot,
+            'bot_name' => $player->bot_name,
+            'bot_difficulty' => $player->bot_difficulty,
             'position' => $spawnPosition,
             'rotation' => ['x' => 0, 'y' => 0, 'z' => 0],
             'velocity' => ['x' => 0, 'y' => 0, 'z' => 0],
@@ -196,12 +261,57 @@ class ArenaMatch extends Model
             'shield' => 0,
             'stamina' => 100,
             'inventory' => [],
+            'ammo_current' => $player->is_bot ? 999 : 30,
+            'ammo_reserve' => $player->is_bot ? 9999 : 120,
             'last_updated' => now()
         ]);
     }
 
+    protected function getSpawnPositionForPlayer(MatchPlayer $player): array
+    {
+        $spawnPoints = $this->map_data['spawn_points'] ?? [];
+
+        if ($player->is_bot) {
+            $botSpawns = $spawnPoints['bots'] ?? [];
+            $botIndex = $this->players()
+                ->where('is_bot', true)
+                ->where('id', '<=', $player->id)
+                ->count() - 1;
+
+            if (isset($botSpawns[$botIndex])) {
+                return [
+                    'x' => $botSpawns[$botIndex]['x'],
+                    'y' => $botSpawns[$botIndex]['y'] ?? 1,
+                    'z' => $botSpawns[$botIndex]['z'],
+                ];
+            }
+        }
+
+        if (isset($spawnPoints['player'])) {
+            return [
+                'x' => $spawnPoints['player']['x'],
+                'y' => $spawnPoints['player']['y'] ?? 1,
+                'z' => $spawnPoints['player']['z'],
+            ];
+        }
+
+        return $this->getRandomSpawnPosition();
+    }
+
     protected function getRandomSpawnPosition(): array
     {
+        $roads = $this->map_data['road_lanes'] ?? [];
+
+        if (!empty($roads)) {
+            $point = $roads[array_rand($roads)];
+
+            return [
+                'x' => $point['x'] + rand(-6, 6),
+                'y' => 1,
+                'z' => $point['z'] + rand(-6, 6),
+            ];
+        }
+
         $radius = 80;
         $angle = rand(0, 360) * (M_PI / 180);
         $distance = rand(0, $radius);
@@ -244,13 +354,42 @@ class ArenaMatch extends Model
                 'placement' => $index + 1
             ]);
         }
+    }
 
-        $this->updateUserStats();
+    protected function calculateSoloScores(): void
+    {
+        $players = $this->players()->where('is_bot', false)->get();
+
+        foreach ($players as $player) {
+            $state = $this->playerStates()->where('user_id', $player->user_id)->first();
+
+            $accuracyBonus = $player->shots_fired > 0
+                ? (int) round(($player->shots_hit / $player->shots_fired) * 20)
+                : 0;
+
+            $survivalBonus = (int) floor(($player->survival_time ?? 0) / 10);
+            $healthBonus = (int) max(0, $state?->health ?? 0);
+            $victoryBonus = $player->placement === 1 ? 100 : 0;
+
+            $score =
+                ($player->kills * 10) +
+                ($player->headshots * 20) +
+                $accuracyBonus +
+                $survivalBonus +
+                $healthBonus +
+                $victoryBonus;
+
+            $player->update(['score' => $score]);
+        }
     }
 
     protected function updateUserStats(): void
     {
         foreach ($this->players as $player) {
+            if ($player->is_bot || !$player->user) {
+                continue;
+            }
+
             $stats = $player->user->getOrCreateStats();
             $stats->update([
                 'total_matches' => $stats->total_matches + 1,
@@ -268,6 +407,20 @@ class ArenaMatch extends Model
 
             $stats->updateKdRatio();
             $stats->updateWinRate();
+        }
+    }
+
+    protected function refreshLeaderboards(): void
+    {
+        try {
+            foreach (['wins', 'kills', 'damage', 'kd_ratio'] as $category) {
+                Leaderboard::updateRankings('all_time', $category);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Leaderboard refresh failed after match end', [
+                'match_id' => $this->id,
+                'message' => $e->getMessage(),
+            ]);
         }
     }
 

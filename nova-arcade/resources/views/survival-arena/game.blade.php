@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -30,6 +30,11 @@
                 <div class="pollution-bar">
                     <div class="pollution-fill" id="pollution-fill"></div>
                 </div>
+            </div>
+
+            <div class="pollution-timer">
+                <div class="timer-label">Match Ends</div>
+                <div class="timer-value" id="match-timer">5:00</div>
             </div>
         </div>
         
@@ -162,24 +167,19 @@
             matchId: {{ $match->id }},
             matchCode: "{{ $match->match_code }}",
             userId: {{ auth()->id() }},
-            userName: "{{ auth()->user()->username }}",
+            userName: "{{ auth()->user()->username ?? auth()->user()->name }}",
             apiBaseUrl: "{{ url('/api/survival-arena') }}",
             wsUrl: "{{ env('REVERB_HOST', 'localhost') }}:{{ env('REVERB_PORT', 8080) }}",
-            csrfToken: "{{ csrf_token() }}"
+            csrfToken: "{{ csrf_token() }}",
+            matchDurationSeconds: {{ config('games.survival-arena.timing.max_duration_seconds', 300) }},
+            matchStartedAt: "{{ optional($match->started_at)->toIso8601String() ?? now()->toIso8601String() }}",
+            difficulty: "{{ $match->difficulty ?? 'easy' }}",
+            botCount: {{ $match->bot_count ?? 3 }},
+            mapData: @json($match->map_data)
         };
     </script>
     
-    <!-- Three.js and dependencies -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
-    
-    <!-- Game Scripts -->
-    <script type="module" src="{{ asset('games/survival-arena-3d/js/main.js') }}"></script>
+    <!-- Game Scripts (bundled locally via Vite, no CDN dependency) -->
+    @vite('public/games/survival-arena-3d/js/main-city.js')
 </body>
 </html>

@@ -15,7 +15,7 @@ class PlayerDamaged implements ShouldBroadcast
 
     public function __construct(
         public ArenaMatch $match,
-        public int $victimId,
+        public ?int $victimId,
         public int $damage,
         public int $newHealth,
         public int $newShield,

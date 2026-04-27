@@ -3,13 +3,17 @@
 namespace App\Services\SurvivalArena\Match;
 
 use App\Models\SurvivalArena\ArenaMatch;
+use App\Services\SurvivalArena\Match\MatchService;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 class MatchmakingService
 {
-    public function findOrCreateMatch(User $user, string $gameMode = 'solo'): ArenaMatch
+    public function findOrCreateMatch(
+        User $user,
+        string $gameMode = 'solo',
+        string $difficulty = 'easy'
+    ): ArenaMatch
     {
         $existingMatch = $this->getUserActiveMatch($user, $gameMode);
         if ($existingMatch) {
@@ -22,7 +26,7 @@ class MatchmakingService
             return $match;
         }
 
-        return $this->createMatch($user, $gameMode);
+        return $this->createMatch($user, $gameMode, $difficulty);
     }
 
     private function getUserActiveMatch(User $user, string $requestedMode): ?ArenaMatch
@@ -65,6 +69,10 @@ class MatchmakingService
 
     private function findAvailableMatch(string $gameMode, User $user): ?ArenaMatch
     {
+        if ($gameMode === 'solo') {
+            return null;
+        }
+
         return ArenaMatch::where('status', 'waiting')
             ->where('game_mode', $gameMode)
             ->whereColumn('current_players', '<', 'max_players')
@@ -75,17 +83,29 @@ class MatchmakingService
             ->first();
     }
 
-    private function createMatch(User $user, string $gameMode): ArenaMatch
+    private function createMatch(User $user, string $gameMode, string $difficulty): ArenaMatch
     {
+        $difficulty = in_array($difficulty, ['easy', 'medium', 'hard'], true)
+            ? $difficulty
+            : 'easy';
+        $botCount = $this->getBotCountByDifficulty($difficulty);
+        $maxPlayers = $gameMode === 'solo'
+            ? 1 + $botCount
+            : $this->getMaxPlayers($gameMode);
+
         $match = ArenaMatch::create([
             'game_mode' => $gameMode,
-            'max_players' => $this->getMaxPlayers($gameMode),
+            'mode' => $gameMode,
+            'difficulty' => $difficulty,
+            'bot_count' => $botCount,
+            'max_players' => $maxPlayers,
+            'map_data' => app(MatchService::class)->generateMapData(),
             'status' => 'waiting',
         ]);
 
         $match->addPlayer($user);
 
-        Cache::tags(['active_matches'])->put(
+        Cache::put(
             "match:{$match->id}",
             $match,
             now()->addHours(1)
@@ -97,16 +117,30 @@ class MatchmakingService
     private function getMaxPlayers(string $gameMode): int
     {
         return match ($gameMode) {
-            'solo' => config('games.survival-arena.matchmaking.max_players', 50),
+            'solo' => 1,
             'duo' => 50,
             'squad' => 40,
             default => 50,
         };
     }
 
+    private function getBotCountByDifficulty(string $difficulty): int
+    {
+        return match ($difficulty) {
+            'easy' => 3,
+            'medium' => 5,
+            'hard' => 8,
+            default => 3,
+        };
+    }
+
     public function removeFromQueue(User $user): bool
     {
-        $match = $this->getUserActiveMatch($user);
+        $match = ArenaMatch::waiting()
+            ->whereHas('players', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->first();
 
         if ($match && $match->status === 'waiting') {
             $match->removePlayer($user);

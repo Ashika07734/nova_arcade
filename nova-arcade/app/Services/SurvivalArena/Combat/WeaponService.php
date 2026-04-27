@@ -33,6 +33,8 @@ class WeaponService
         $shooter->decrement('ammo_current');
         $shooter->is_shooting = true;
         $shooter->save();
+
+        $this->resolveMatchPlayer($shooter)?->incrementShotsFired();
         
         // Apply weapon spread
         $direction = $this->applySpread($direction, $weapon->spread);
@@ -78,13 +80,14 @@ class WeaponService
         }
         
         // Check fire rate cooldown
-        $lastShot = Cache::get("player:{$shooter->user_id}:last_shot");
+        $shooterKey = $shooter->user_id ?: ('bot:' . ($shooter->bot_name ?: $shooter->id));
+        $lastShot = Cache::get("player:{$shooterKey}:last_shot");
         if ($lastShot && now()->diffInMilliseconds($lastShot) < $weapon->fire_rate) {
             return false;
         }
         
         Cache::put(
-            "player:{$shooter->user_id}:last_shot",
+            "player:{$shooterKey}:last_shot",
             now(),
             now()->addSeconds(1)
         );
@@ -127,10 +130,12 @@ class WeaponService
         $victim->takeDamage($damage, $shooter->user_id);
         
         // Update shooter's damage dealt
-        $shooter->match->players()
-            ->where('user_id', $shooter->user_id)
-            ->first()
-            ->addDamage($damage);
+        $shooterRecord = $this->resolveMatchPlayer($shooter);
+
+        if ($shooterRecord) {
+            $shooterRecord->addDamage($damage);
+            $shooterRecord->incrementShotsHit();
+        }
         
         // Broadcast damage event
         broadcast(new PlayerDamaged(
@@ -144,23 +149,80 @@ class WeaponService
         
         // Check if kill
         $isKill = $victim->health <= 0;
+
+        $killerName = $shooter->is_bot
+            ? ($shooter->bot_name ?: 'BOT')
+            : ($shooter->user?->username ?? 'Player');
+        $victimName = $victim->is_bot
+            ? ($victim->bot_name ?: 'BOT')
+            : ($victim->user?->username ?? 'Player');
         
         if ($isKill && $isHeadshot) {
-            $shooter->match->players()
-                ->where('user_id', $shooter->user_id)
-                ->first()
-                ->incrementHeadshots();
+            $shooterRecord?->incrementHeadshots();
+
+            $this->pushKillFeedEntry($shooter->match->id, [
+                'killer_id' => $shooter->user_id,
+                'killer_name' => $killerName,
+                'killer_is_bot' => (bool) $shooter->is_bot,
+                'victim_id' => $victim->user_id,
+                'victim_name' => $victimName,
+                'victim_is_bot' => (bool) $victim->is_bot,
+                'weapon_name' => $weapon->name,
+                'headshot' => $isHeadshot,
+                'created_at' => now()->toIso8601String(),
+            ]);
+        } elseif ($isKill) {
+            $this->pushKillFeedEntry($shooter->match->id, [
+                'killer_id' => $shooter->user_id,
+                'killer_name' => $killerName,
+                'killer_is_bot' => (bool) $shooter->is_bot,
+                'victim_id' => $victim->user_id,
+                'victim_name' => $victimName,
+                'victim_is_bot' => (bool) $victim->is_bot,
+                'weapon_name' => $weapon->name,
+                'headshot' => false,
+                'created_at' => now()->toIso8601String(),
+            ]);
         }
         
         return [
             'success' => true,
             'hit' => true,
+            'killer_name' => $killerName,
             'victim_id' => $victim->user_id,
+            'victim_is_bot' => (bool) $victim->is_bot,
+            'victim_bot_name' => $victim->bot_name,
+            'victim_name' => $victimName,
             'damage' => $damage,
             'headshot' => $isHeadshot,
             'kill' => $isKill,
             'distance' => $hit['distance']
         ];
+    }
+
+    private function resolveMatchPlayer(PlayerState $state): ?\App\Models\SurvivalArena\MatchPlayer
+    {
+        if ($state->is_bot) {
+            return $state->match->players()
+                ->where('is_bot', true)
+                ->where('bot_name', $state->bot_name)
+                ->first();
+        }
+
+        return $state->match->players()
+            ->where('user_id', $state->user_id)
+            ->first();
+    }
+
+    private function pushKillFeedEntry(int $matchId, array $entry): void
+    {
+        $key = "match:{$matchId}:kill_feed";
+        $feed = Cache::get($key, []);
+
+        array_unshift($feed, $entry);
+        $feed = array_slice($feed, 0, 20);
+
+        Cache::put($key, $feed, now()->addMinutes(30));
     }
     
     /**

@@ -3,6 +3,7 @@
 namespace App\Models\SurvivalArena;
 
 use App\Models\User;
+use App\Models\SurvivalArena\MatchPlayer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
@@ -16,6 +17,9 @@ class PlayerState extends Model
     protected $fillable = [
         'match_id',
         'user_id',
+        'is_bot',
+        'bot_name',
+        'bot_difficulty',
         'position',
         'rotation',
         'velocity',
@@ -38,6 +42,7 @@ class PlayerState extends Model
         'rotation' => 'array',
         'velocity' => 'array',
         'inventory' => 'array',
+        'is_bot' => 'boolean',
         'is_reloading' => 'boolean',
         'is_shooting' => 'boolean',
         'is_sprinting' => 'boolean',
@@ -98,10 +103,10 @@ class PlayerState extends Model
         $this->health = max(0, $this->health);
 
         // Update match player damage taken
-        $this->match->players()
-            ->where('user_id', $this->user_id)
-            ->first()
-            ->takeDamage($amount);
+        $matchPlayer = $this->getMatchPlayer();
+        if ($matchPlayer) {
+            $matchPlayer->takeDamage($amount);
+        }
 
         // Broadcast damage event
         broadcast(new \App\Events\SurvivalArena\Player\PlayerDamaged(
@@ -123,32 +128,37 @@ class PlayerState extends Model
     protected function die(?int $killerId = null): void
     {
         $this->health = 0;
-        
-        $matchPlayer = $this->match->players()
-            ->where('user_id', $this->user_id)
-            ->first();
-            
-        $matchPlayer->recordDeath($this->position);
+
+        $matchPlayer = $this->getMatchPlayer();
+        if ($matchPlayer) {
+            $matchPlayer->recordDeath($this->position);
+        }
 
         if ($killerId) {
+            // Increment killer's kill count even when victim is a bot.
+            $killer = $this->match->players()
+                ->where('user_id', $killerId)
+                ->first();
+            if ($killer) {
+                $killer->incrementKills();
+            }
+        }
+
+        if ($killerId && $this->user_id) {
             // Record kill
             $weapon = $this->getCurrentWeapon();
-            
-            PlayerKill::create([
-                'match_id' => $this->match_id,
-                'killer_id' => $killerId,
-                'victim_id' => $this->user_id,
-                'weapon_id' => $weapon?->id,
-                'distance' => $this->calculateDistance($killerId),
-                'headshot' => false, // This should be determined by hit detection
-                'kill_position' => $this->position
-            ]);
 
-            // Increment killer's kill count
-            $this->match->players()
-                ->where('user_id', $killerId)
-                ->first()
-                ->incrementKills();
+            if ($killerId > 0) {
+                PlayerKill::create([
+                    'match_id' => $this->match_id,
+                    'killer_id' => $killerId,
+                    'victim_id' => $this->user_id,
+                    'weapon_id' => $weapon?->id,
+                    'distance' => $this->calculateDistance($killerId),
+                    'headshot' => false,
+                    'kill_position' => $this->position
+                ]);
+            }
 
             // Broadcast kill event
             broadcast(new \App\Events\SurvivalArena\Player\PlayerKilled(
@@ -304,10 +314,30 @@ class PlayerState extends Model
 
     protected function cacheState(): void
     {
+        $stateKey = $this->user_id ?: ('bot:' . ($this->bot_name ?: $this->id));
+
         Cache::put(
-            "player_state:{$this->match_id}:{$this->user_id}",
+            "player_state:{$this->match_id}:{$stateKey}",
             $this->toArray(),
             now()->addSeconds(10)
         );
+    }
+
+    private function getMatchPlayer(): ?MatchPlayer
+    {
+        if ($this->is_bot) {
+            return $this->match->players()
+                ->where('is_bot', true)
+                ->where('bot_name', $this->bot_name)
+                ->first();
+        }
+
+        if (!$this->user_id) {
+            return null;
+        }
+
+        return $this->match->players()
+            ->where('user_id', $this->user_id)
+            ->first();
     }
 }

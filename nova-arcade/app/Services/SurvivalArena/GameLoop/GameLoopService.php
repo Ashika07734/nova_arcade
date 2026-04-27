@@ -4,6 +4,7 @@ namespace App\Services\SurvivalArena\GameLoop;
 
 use App\Models\SurvivalArena\ArenaMatch;
 use App\Models\SurvivalArena\PlayerState;
+use App\Services\SurvivalArena\Bot\BotService;
 use App\Services\SurvivalArena\Combat\HitDetectionService;
 use App\Services\SurvivalArena\Player\MovementService;
 use App\Services\SurvivalArena\Match\SafeZoneService;
@@ -20,7 +21,8 @@ class GameLoopService
         private HitDetectionService $hitDetectionService,
         private SafeZoneService $safeZoneService,
         private PhysicsService $physicsService,
-        private CollisionService $collisionService
+        private CollisionService $collisionService,
+        private BotService $botService
     ) {}
     
     /**
@@ -29,6 +31,18 @@ class GameLoopService
     public function processTick(ArenaMatch $match): void
     {
         if ($match->status !== 'in_progress') {
+            return;
+        }
+
+        $maxDuration = (int) config('games.survival-arena.timing.max_duration_seconds', 300);
+        if ($match->started_at && now()->diffInSeconds($match->started_at) >= $maxDuration) {
+            $winner = $match->players()
+                ->where('is_bot', false)
+                ->where('is_alive', true)
+                ->orderByDesc('kills')
+                ->first();
+
+            $match->end($winner?->user);
             return;
         }
         
@@ -44,7 +58,11 @@ class GameLoopService
             foreach ($players as $player) {
                 $this->physicsService->applyGravity($player);
                 $this->physicsService->updateVelocity($player);
+                $this->movementService->updatePosition($player);
             }
+
+            // 1.5 Update AI bots (solo mode).
+            $this->botService->updateBots($match, $players);
             
             // 2. Check collisions
             $this->collisionService->checkCollisions($match, $players);
@@ -59,6 +77,11 @@ class GameLoopService
             
             // 5. Cache updated states for fast retrieval
             $this->cacheGameState($match, $players);
+
+            // Persist all updates after physics/collision and zone processing.
+            foreach ($players as $player) {
+                $player->save();
+            }
             
         } catch (\Exception $e) {
             \Log::error('Game loop error', [
@@ -76,11 +99,26 @@ class GameLoopService
         $cacheKey = "match:{$match->id}:players";
         
         return Cache::remember($cacheKey, now()->addSeconds(1), function () use ($match) {
-            return PlayerState::where('match_id', $match->id)
-                ->whereHas('match.players', function ($q) {
-                    $q->where('is_alive', true);
-                })
-                ->get();
+            $states = PlayerState::where('match_id', $match->id)->get();
+
+            return $states->filter(function (PlayerState $state) use ($match) {
+                if ($state->is_bot) {
+                    return $match->players()
+                        ->where('is_bot', true)
+                        ->where('bot_name', $state->bot_name)
+                        ->where('is_alive', true)
+                        ->exists();
+                }
+
+                if (!$state->user_id) {
+                    return false;
+                }
+
+                return $match->players()
+                    ->where('user_id', $state->user_id)
+                    ->where('is_alive', true)
+                    ->exists();
+            })->values();
         });
     }
     

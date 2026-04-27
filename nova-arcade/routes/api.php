@@ -13,7 +13,7 @@ use App\Http\Controllers\Web\LeaderboardController;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum,web'])->group(function () {
     
     
     Route::prefix('survival-arena')->name('survival-arena.')->group(function () {
