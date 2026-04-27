@@ -7,4 +7,4 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
-public/assets/models/s.w.a.t._operator-_4k_followers_special_remaster.glb filter=lfs diff=lfs merge=lfs -text
+nova-arcade/public/assets/models/s.w.a.t._operator-_4k_followers_special_remaster.glb filter=lfs diff=lfs merge=lfs -text
