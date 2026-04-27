@@ -6,9 +6,11 @@ export class Player {
         this.group = new THREE.Group();
         this.velocity = new THREE.Vector3();
         this.isJumping = false;
+        this.hasModel = false;
         this.loader = new GLTFLoader();
         this.visualRoot = new THREE.Group();
         this.group.add(this.visualRoot);
+        this.fallbackEnabled = Boolean(window.gameData?.debugPlayerFallback);
 
         const body = new THREE.Mesh(
             new THREE.CapsuleGeometry(0.42, 1.02, 4, 12),
@@ -25,11 +27,21 @@ export class Player {
 
         this.fallbackBody = body;
         this.fallbackVisor = visor;
+        this.fallbackBody.visible = this.fallbackEnabled;
+        this.fallbackVisor.visible = this.fallbackEnabled;
         this.visualRoot.add(body, visor);
     }
 
     async loadModel(candidates = []) {
-        const urls = [...new Set(candidates.filter(Boolean))];
+        const baseUrls = [...new Set(candidates.filter(Boolean))];
+        const urls = [...baseUrls];
+
+        for (const baseUrl of baseUrls) {
+            if (typeof baseUrl !== 'string' || baseUrl.includes('?')) {
+                continue;
+            }
+            urls.push(`${baseUrl}?v=sa-player-v2`);
+        }
 
         for (const url of urls) {
             try {
@@ -42,7 +54,7 @@ export class Player {
                     if (child instanceof THREE.Mesh) {
                         child.castShadow = true;
                         child.receiveShadow = true;
-                        child.frustumCulled = true;
+                        child.frustumCulled = false;
                     }
                 });
 
@@ -52,17 +64,31 @@ export class Player {
                 bounds.getSize(size);
                 bounds.getCenter(center);
 
-                const tallest = Math.max(size.y, 1);
-                const scale = 1.7 / tallest;
+                const sizeIsValid = Number.isFinite(size.x) && Number.isFinite(size.y) && Number.isFinite(size.z)
+                    && size.x > 0.0001 && size.y > 0.0001 && size.z > 0.0001;
+                const tallest = sizeIsValid ? Math.max(size.y, 1) : 1.7;
+                const rawScale = 1.7 / tallest;
+                const scale = THREE.MathUtils.clamp(rawScale, 0.25, 4.0);
                 model.scale.setScalar(scale);
-                model.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
+
+                const groundOffset = Number.isFinite(bounds.min.y) ? -bounds.min.y * scale : 0;
+                const centerX = Number.isFinite(center.x) ? center.x : 0;
+                const centerZ = Number.isFinite(center.z) ? center.z : 0;
+                model.position.set(-centerX * scale, groundOffset, -centerZ * scale);
 
                 this.visualRoot.clear();
                 this.visualRoot.add(model);
+                this.hasModel = true;
                 return true;
             } catch (error) {
                 console.warn(`[SurvivalArena] player model load failed: ${url}`, error);
             }
+        }
+
+        console.error('[SurvivalArena] player model failed for all candidates', urls);
+        this.hasModel = false;
+        if (!this.fallbackEnabled) {
+            this.visualRoot.clear();
         }
 
         return false;
@@ -104,8 +130,8 @@ export class Player {
 
         this.velocity.y += (-9.81 * delta);
         this.position.y += this.velocity.y * delta;
-        if (this.position.y <= 0.95) {
-            this.position.y = 0.95;
+        if (this.position.y <= 0.05) {
+            this.position.y = 0.05;
             this.velocity.y = 0;
             this.isJumping = false;
         }

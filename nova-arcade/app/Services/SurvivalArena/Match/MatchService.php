@@ -83,6 +83,7 @@ class MatchService
             'size' => 320,
             'terrain' => 'city',
             'map_asset' => asset('assets/models/maps/CityPack8.glb'),
+            'player_asset' => asset('assets/models/s.w.a.t._operator-_4k_followers_special_remaster.glb'),
             'spawn_points' => $spawnPoints,
             'collision_boxes' => $collisionBoxes,
             'obstacles' => $collisionBoxes,

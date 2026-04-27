@@ -32,7 +32,7 @@ export class Bot {
         weapon.position.set(0.3, 0.62, 0.12);
 
         const tag = this.createTag(label);
-        tag.position.set(0, 1.9, 0);
+        tag.position.set(0, 2.2, 0);
 
         this.fallbackBody = body;
         this.fallbackHead = head;
@@ -44,10 +44,40 @@ export class Bot {
         this.visualRoot.add(body, head, weapon);
         this.group.add(tag);
         this.health = 100;
+        this.maxHealth = 100;
         this.isAlive = true;
 
+        // --- Health bar (floating above the bot) ---
+        this.healthBarGroup = new THREE.Group();
+        this.healthBarGroup.position.set(0, 2.0, 0);
+
+        // Background bar (dark)
+        const bgGeo = new THREE.PlaneGeometry(1.2, 0.12);
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthTest: false });
+        this.healthBarBg = new THREE.Mesh(bgGeo, bgMat);
+        this.healthBarBg.renderOrder = 999;
+        this.healthBarGroup.add(this.healthBarBg);
+
+        // Fill bar (green → yellow → red based on health)
+        const fillGeo = new THREE.PlaneGeometry(1.16, 0.08);
+        const fillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthTest: false });
+        this.healthBarFill = new THREE.Mesh(fillGeo, fillMat);
+        this.healthBarFill.renderOrder = 1000;
+        this.healthBarFill.position.z = 0.001;
+        this.healthBarGroup.add(this.healthBarFill);
+
+        this.group.add(this.healthBarGroup);
+
+        // --- Damage flash timer ---
+        this.damageFlashTime = 0;
+
         this.loadModel([
-            '/assets/models/s.w.a.t._operator-_4k_followers_special_remaster.glb',
+            new URL('../../../assets/models/s.w.a.t._operator.glb', import.meta.url).toString(),
+            window.gameData?.assetBaseUrl
+                ? `${window.gameData.assetBaseUrl.replace(/\/$/, '')}/assets/models/s.w.a.t._operator.glb`
+                : null,
+            window.gameData?.playerAsset,
+            '/assets/models/s.w.a.t._operator.glb',
         ]);
     }
 
@@ -61,7 +91,6 @@ export class Bot {
                 const model = gltf.scene;
                 model.traverse((child) => {
                     if (child instanceof THREE.Mesh) {
-                        // Bots are numerous, keep their model light for better frame pacing.
                         child.castShadow = false;
                         child.receiveShadow = false;
                         child.frustumCulled = true;
@@ -79,7 +108,6 @@ export class Bot {
                 model.scale.setScalar(scale);
                 model.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
 
-                model.position.y += 0.05;
                 this.visualRoot.clear();
                 this.visualRoot.add(model);
                 return true;
@@ -113,6 +141,50 @@ export class Bot {
         return sprite;
     }
 
+    /** Update health bar visual based on current health */
+    updateHealthBar() {
+        if (!this.healthBarFill || !this.healthBarBg) return;
+
+        const pct = Math.max(0, this.health) / this.maxHealth;
+
+        // Scale the fill bar horizontally
+        this.healthBarFill.scale.x = pct;
+        // Offset to keep it left-aligned
+        this.healthBarFill.position.x = -(1.16 * (1 - pct)) / 2;
+
+        // Color: green → yellow → red
+        if (pct > 0.6) {
+            this.healthBarFill.material.color.setHex(0x22c55e); // green
+        } else if (pct > 0.3) {
+            this.healthBarFill.material.color.setHex(0xeab308); // yellow
+        } else {
+            this.healthBarFill.material.color.setHex(0xef4444); // red
+        }
+
+        // Hide health bar when dead
+        this.healthBarGroup.visible = this.isAlive && this.health < this.maxHealth;
+    }
+
+    /** Called when bot takes damage — triggers visual flash */
+    onDamaged(damage) {
+        this.health = Math.max(0, this.health - damage);
+        this.damageFlashTime = 0.15;
+        this.updateHealthBar();
+
+        // Flash the model red briefly
+        this.visualRoot.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material) {
+                const mat = child.material;
+                if (!mat._origEmissive) {
+                    mat._origEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0);
+                    mat._origEmissiveIntensity = mat.emissiveIntensity ?? 0;
+                }
+                mat.emissive = new THREE.Color(0xff0000);
+                mat.emissiveIntensity = 0.8;
+            }
+        });
+    }
+
     updateFromState(state) {
         const wasAlive = this.isAlive;
         this.health = state.health;
@@ -120,7 +192,7 @@ export class Bot {
 
         this.group.position.set(
             state.position?.x ?? 0,
-            Math.max(1, state.position?.y ?? 1),
+            Math.max(0.05, state.position?.y ?? 0.05),
             state.position?.z ?? 0
         );
 
@@ -133,10 +205,31 @@ export class Bot {
             this.deathProgress = 0;
         }
 
+        this.updateHealthBar();
         this.group.visible = true;
     }
 
-    update(delta) {
+    update(delta, cameraRef) {
+        // Make health bar always face the camera
+        if (cameraRef && this.healthBarGroup) {
+            this.healthBarGroup.quaternion.copy(cameraRef.quaternion);
+        }
+
+        // Damage flash fade-out
+        if (this.damageFlashTime > 0) {
+            this.damageFlashTime -= delta;
+            if (this.damageFlashTime <= 0) {
+                this.damageFlashTime = 0;
+                // Restore original emissive
+                this.visualRoot.traverse((child) => {
+                    if (child instanceof THREE.Mesh && child.material && child.material._origEmissive) {
+                        child.material.emissive.copy(child.material._origEmissive);
+                        child.material.emissiveIntensity = child.material._origEmissiveIntensity;
+                    }
+                });
+            }
+        }
+
         if (!this.deathStarted) {
             return;
         }
@@ -145,6 +238,11 @@ export class Bot {
         this.group.rotation.z += delta * 1.5;
         this.group.position.y = Math.max(0.15, this.group.position.y - (delta * 0.9));
         this.group.scale.setScalar(Math.max(0, 1 - (this.deathProgress * 0.9)));
+
+        // Hide health bar on death
+        if (this.healthBarGroup) {
+            this.healthBarGroup.visible = false;
+        }
 
         if (this.deathProgress >= 1.1) {
             this.group.visible = false;

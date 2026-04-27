@@ -59,6 +59,7 @@ class SurvivalArenaCityGame {
         this.reloadEndTime = 0;
         this.playerAlive = true;
         this.matchActive = true;
+        this.isFiring = false;
 
         // --- Zone ---
         this.zonePhase = 0;
@@ -333,12 +334,24 @@ class SurvivalArenaCityGame {
 
     async createPlayer() {
         this.player = new Player();
-        await this.player.loadModel([
-            '/assets/models/s.w.a.t._operator-_4k_followers_special_remaster.glb',
+        const swatFile = 's.w.a.t._operator.glb';
+        const baseAssetUrl = (window.gameData?.assetBaseUrl || '').replace(/\/$/, '');
+        const bundleDerivedUrl = new URL(`../../../assets/models/${swatFile}`, import.meta.url).toString();
+        const playerModelLoaded = await this.player.loadModel([
+            bundleDerivedUrl,
+            baseAssetUrl ? `${baseAssetUrl}/assets/models/${swatFile}` : null,
+            window.gameData?.playerAsset,
+            this.mapData.player_asset,
+            '/assets/models/s.w.a.t._operator.glb',
+            'assets/models/s.w.a.t._operator.glb',
+            '/public/assets/models/s.w.a.t._operator.glb',
         ]);
+        if (!playerModelLoaded) {
+            this.pushNotification('Player GLB unavailable - using fallback mesh');
+        }
         const spawn = await this.resolvePlayerSpawn();
         this.player.setPosition(spawn);
-        this.player.position.y = Math.max(0.95, spawn.y ?? 0.95);
+        this.player.position.y = Math.max(0.05, spawn.y ?? 0.05);
         this.scene.add(this.player.group);
 
         this.view.yaw = this.findDefaultFacing(spawn);
@@ -446,7 +459,16 @@ class SurvivalArenaCityGame {
 
         window.addEventListener('mousedown', (event) => {
             if (event.button === 0) {
-                this.fireWeapon();
+                this.isFiring = true;
+                if (document.pointerLockElement === this.renderer?.domElement) {
+                    this.fireWeapon();
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', (event) => {
+            if (event.button === 0) {
+                this.isFiring = false;
             }
         });
 
@@ -458,7 +480,7 @@ class SurvivalArenaCityGame {
             const sensitivity = 0.0022;
             this.view.yaw -= event.movementX * sensitivity;
             this.view.pitch -= event.movementY * sensitivity;
-            this.view.pitch = THREE.MathUtils.clamp(this.view.pitch, -0.65, 0.15);
+            this.view.pitch = THREE.MathUtils.clamp(this.view.pitch, -1.2, 0.8);
         });
     }
 
@@ -566,17 +588,24 @@ class SurvivalArenaCityGame {
 
         this.localAmmo--;
 
-        const direction = new THREE.Vector3();
-        this.camera.getWorldDirection(direction);
+        // Compute aim direction from player's yaw/pitch (forward facing direction)
+        const direction = new THREE.Vector3(
+            Math.sin(this.view.yaw) * Math.cos(this.view.pitch),
+            -Math.sin(this.view.pitch),
+            Math.cos(this.view.yaw) * Math.cos(this.view.pitch)
+        ).normalize();
 
         if (this.weapon) {
             this.weapon.flashMuzzle(this.scene);
         }
         this.playShootSound();
 
+        // Bullet origin: from player's chest height
+        const bulletOrigin = this.player.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+
         const bullet = new Bullet(
             this.scene,
-            this.weapon ? this.weapon.getMuzzleWorldPosition() : this.player.position.clone().add(new THREE.Vector3(0, 1.2, 0)),
+            this.weapon ? this.weapon.getMuzzleWorldPosition() : bulletOrigin,
             direction,
             this.collisionService,
             { maxDistance: 120, speed: 220 }
@@ -586,7 +615,7 @@ class SurvivalArenaCityGame {
         // LOCAL hit detection against bots
         if (this.botAI) {
             const hit = this.botAI.raycastBots(
-                this.player.position.clone().add(new THREE.Vector3(0, 1.2, 0)),
+                bulletOrigin,
                 direction,
                 120
             );
@@ -1245,6 +1274,11 @@ class SurvivalArenaCityGame {
 
             if (this.player && this.playerAlive) {
                 this.player.update(delta, this.getInputState(), this.collisionService, this.view.yaw);
+
+                // Auto-fire while holding left mouse button
+                if (this.isFiring && document.pointerLockElement === this.renderer?.domElement) {
+                    this.fireWeapon();
+                }
             }
 
             this.ensureEmergencyVisuals();
@@ -1254,6 +1288,7 @@ class SurvivalArenaCityGame {
             // Update bot AI with full client-side simulation
             if (this.botAI) {
                 this.botAI.playerRef = this.player;
+                this.botAI._cameraRef = this.camera;
                 this.botAI.update(delta);
             }
 

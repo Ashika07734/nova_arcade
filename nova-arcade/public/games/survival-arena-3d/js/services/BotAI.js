@@ -111,9 +111,9 @@ export class BotAI {
             const sp = spawnPoints[i % Math.max(1, spawnPoints.length)]
                 || fallbackSpawns[i % fallbackSpawns.length];
 
-            bot.group.position.set(sp.x || 0, 1, sp.z || 0);
+            bot.group.position.set(sp.x || 0, 0.05, sp.z || 0);
             bot._ai = this._newAIContext({
-                position: { x: sp.x || 0, y: 1, z: sp.z || 0 },
+                position: { x: sp.x || 0, y: 0.05, z: sp.z || 0 },
                 health: 100,
                 is_alive: true,
                 username: name,
@@ -144,7 +144,7 @@ export class BotAI {
         const playerPos = this.playerRef.position;
 
         for (const [key, bot] of this.bots.entries()) {
-            bot.update(delta);
+            bot.update(delta, this._cameraRef);
 
             const ai = bot._ai;
             if (!ai || !ai.alive) continue;
@@ -193,7 +193,7 @@ export class BotAI {
             const half = this.worldSize * 0.42;
             bot.group.position.x = Math.max(-half, Math.min(half, bot.group.position.x + vx * delta));
             bot.group.position.z = Math.max(-half, Math.min(half, bot.group.position.z + vz * delta));
-            bot.group.position.y = Math.max(1, bot.group.position.y);
+            bot.group.position.y = Math.max(0.05, bot.group.position.y);
 
             // --- shooting ---
             if (dist <= this.profile.shootRange && now >= ai.nextShotAt) {
@@ -254,6 +254,15 @@ export class BotAI {
         if (!bot || !bot._ai || !bot._ai.alive) return null;
 
         bot._ai.health -= damage;
+
+        // Visual feedback — flash and health bar update
+        if (typeof bot.onDamaged === 'function') {
+            bot.health = bot._ai.health;
+            bot.onDamaged(0); // damage already applied, just trigger visuals
+        } else {
+            bot.health = bot._ai.health;
+        }
+
         if (bot._ai.health <= 0) {
             bot._ai.health = 0;
             bot._ai.alive = false;
