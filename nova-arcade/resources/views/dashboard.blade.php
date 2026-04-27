@@ -4,10 +4,20 @@
 
 @section('content')
 @php
-    $level = max(1, (int) floor(($stats->total_matches ?? 0) / 5) + 1);
-    $xpCurrent = (($stats->kills ?? 0) * 25) + (($stats->wins ?? 0) * 120);
+    $displayName = strtoupper(auth()->user()->username ?: auth()->user()->name ?: 'PLAYER');
+    $totalMatches = (int) ($stats->total_matches ?? 0);
+    $wins = (int) ($stats->wins ?? 0);
+    $kills = (int) ($stats->kills ?? 0);
+    $deaths = (int) ($stats->deaths ?? 0);
+    $headshots = (int) ($stats->headshots ?? 0);
+    $topFive = (int) ($stats->top_5 ?? 0);
+    $topTen = (int) ($stats->top_10 ?? 0);
+    $totalDamage = (int) ($stats->total_damage ?? 0);
+    $level = max(1, (int) floor($totalMatches / 5) + 1);
+    $xpCurrent = ($kills * 25) + ($wins * 120) + ($headshots * 15);
     $xpCap = 1200;
     $xpProgress = min(100, ($xpCurrent / max(1, $xpCap)) * 100);
+    $winRate = $totalMatches > 0 ? ($wins / $totalMatches) * 100 : 0;
 @endphp
 
 <div class="page-shell page-section space-y-8 dash-bg">
@@ -16,13 +26,28 @@
         <div class="hero-grid">
             <div class="hero-left">
                 <div class="eyebrow">Welcome back,</div>
-                <h1 class="hero-title mt-3 text-4xl sm:text-5xl">{{ strtoupper(auth()->user()->username) }}</h1>
+                <h1 class="hero-title mt-3 text-4xl sm:text-5xl">{{ $displayName }}</h1>
                 <p class="mt-3 text-slate-300">Gear up, soldier! The arena is waiting.</p>
 
                 <div class="mt-6 grid gap-3 sm:grid-cols-2">
                     <a href="{{ route('survival-arena.matchmaking') }}" class="hero-cta-primary">Quick Play</a>
                     <a href="{{ route('survival-arena.matches.create') }}" class="hero-cta-secondary">Create Match</a>
                     <a href="{{ route('inventory') }}" class="hero-cta-secondary sm:col-span-2">Inventory</a>
+                </div>
+
+                <div class="mt-6 grid gap-3 sm:grid-cols-3">
+                    <div class="hero-quick-stat">
+                        <span>Level</span>
+                        <strong>{{ $level }}</strong>
+                    </div>
+                    <div class="hero-quick-stat">
+                        <span>Win rate</span>
+                        <strong>{{ number_format($winRate, 1) }}%</strong>
+                    </div>
+                    <div class="hero-quick-stat">
+                        <span>Playtime</span>
+                        <strong>{{ $stats->formatted_playtime }}</strong>
+                    </div>
                 </div>
             </div>
 
@@ -124,14 +149,57 @@
                     class="h-48 w-full object-cover object-center"
                 >
             </div>
-            <div class="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-6">
-                <div class="text-sm text-slate-300">Active matches</div>
-                <div class="mt-2 text-5xl font-black text-cyan-300">{{ number_format($activeMatches) }}</div>
+            <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                <div class="mini-metric border-cyan-400/20 bg-cyan-500/10">
+                    <div class="text-sm text-slate-300">Active matches</div>
+                    <div class="mt-2 text-4xl font-black text-cyan-300">{{ number_format($activeMatches) }}</div>
+                </div>
+                <div class="mini-metric border-emerald-400/20 bg-emerald-500/10">
+                    <div class="text-sm text-slate-300">Win rate</div>
+                    <div class="mt-2 text-4xl font-black text-emerald-300">{{ number_format($winRate, 1) }}%</div>
+                </div>
+                <div class="mini-metric border-violet-400/20 bg-violet-500/10">
+                    <div class="text-sm text-slate-300">Top 5 finishes</div>
+                    <div class="mt-2 text-4xl font-black text-violet-300">{{ number_format($topFive) }}</div>
+                </div>
+                <div class="mini-metric border-amber-400/20 bg-amber-500/10">
+                    <div class="text-sm text-slate-300">Headshots</div>
+                    <div class="mt-2 text-4xl font-black text-amber-300">{{ number_format($headshots) }}</div>
+                </div>
             </div>
-            <div class="mt-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
-                <div class="text-sm text-slate-400">Best stat</div>
-                <div class="mt-2 text-xl font-bold text-white">{{ $stats->highest_kills_match }} kills in one match</div>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                    <div class="text-sm text-slate-400">Best stat</div>
+                    <div class="mt-2 text-xl font-bold text-white">{{ number_format((int) ($stats->highest_kills_match ?? 0)) }} kills in one match</div>
+                </div>
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                    <div class="text-sm text-slate-400">Total damage</div>
+                    <div class="mt-2 text-xl font-bold text-white">{{ number_format($totalDamage) }}</div>
+                </div>
             </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div class="metric-card">
+            <div class="text-sm text-slate-400">Matches</div>
+            <div class="mt-2 text-3xl font-black text-white">{{ number_format($totalMatches) }}</div>
+            <div class="mt-2 text-sm text-slate-500">Completed arenas played.</div>
+        </div>
+        <div class="metric-card">
+            <div class="text-sm text-slate-400">Kills</div>
+            <div class="mt-2 text-3xl font-black text-cyan-300">{{ number_format($kills) }}</div>
+            <div class="mt-2 text-sm text-slate-500">Total eliminations recorded.</div>
+        </div>
+        <div class="metric-card">
+            <div class="text-sm text-slate-400">Top 10s</div>
+            <div class="mt-2 text-3xl font-black text-emerald-300">{{ number_format($topTen) }}</div>
+            <div class="mt-2 text-sm text-slate-500">Consistent deep runs.</div>
+        </div>
+        <div class="metric-card">
+            <div class="text-sm text-slate-400">Deaths</div>
+            <div class="mt-2 text-3xl font-black text-rose-300">{{ number_format($deaths) }}</div>
+            <div class="mt-2 text-sm text-slate-500">Times eliminated in the arena.</div>
         </div>
     </section>
 
@@ -147,12 +215,13 @@
             @forelse ($recentMatches as $entry)
                 <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700/70 bg-slate-900/40 p-4 backdrop-blur-md">
                     <div>
-                        <div class="font-semibold text-white">Match {{ $entry->match->match_code ?? 'Unknown' }}</div>
-                        <div class="text-sm text-slate-400">{{ ucfirst($entry->match->game_mode ?? 'solo') }} | {{ $entry->created_at->diffForHumans() }}</div>
+                        <div class="font-semibold text-white">Match {{ $entry->match?->match_code ?? 'Unknown' }}</div>
+                        <div class="text-sm text-slate-400">{{ ucfirst($entry->match?->game_mode ?? 'solo') }} | {{ $entry->created_at->diffForHumans() }} | {{ number_format((int) ($entry->kills ?? 0)) }} kills</div>
                     </div>
                     <div class="text-right">
                         <div class="text-sm text-slate-400">Placement</div>
                         <div class="text-xl font-black text-cyan-300">#{{ $entry->placement ?? '-' }}</div>
+                        <div class="text-sm text-slate-400">{{ $entry->formatted_survival_time ?? '00:00' }} survival</div>
                     </div>
                 </div>
             @empty
@@ -334,6 +403,31 @@
     .hero-cta-secondary {
         background: rgba(15, 23, 42, 0.68);
         color: #e2e8f0;
+    }
+
+    .hero-quick-stat,
+    .mini-metric,
+    .metric-card {
+        border-radius: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(15, 23, 42, 0.42);
+        padding: 0.9rem 1rem;
+    }
+
+    .hero-quick-stat span {
+        display: block;
+        color: #94a3b8;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+    }
+
+    .hero-quick-stat strong {
+        display: block;
+        margin-top: 0.25rem;
+        color: #f8fafc;
+        font-size: 1.3rem;
+        font-family: 'Orbitron', 'Rajdhani', sans-serif;
     }
 
     @media (max-width: 1200px) {
