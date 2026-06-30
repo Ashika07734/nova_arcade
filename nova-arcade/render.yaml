@@ -1,0 +1,81 @@
+envVarGroups:
+  - name: nova-arcade-common
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_NAME
+        value: Nova Arcade
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: CACHE_STORE
+        value: database
+      - key: SESSION_DRIVER
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_LEVEL
+        value: info
+      - key: FILESYSTEM_DISK
+        value: local
+
+databases:
+  - name: nova-arcade-db
+    plan: basic-256mb
+
+services:
+  - type: web
+    name: nova-arcade-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    preDeployCommand: php artisan migrate --force
+    dockerCommand: php artisan serve --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - fromGroup: nova-arcade-common
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: DB_URL
+        fromDatabase:
+          name: nova-arcade-db
+          property: connectionString
+
+  - type: worker
+    name: nova-arcade-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: php artisan queue:work --sleep=3 --tries=3 --timeout=90 --max-time=3600 --queue=game-ticks,match-processing,statistics,notifications,maintenance,default
+    envVars:
+      - fromGroup: nova-arcade-common
+      - key: APP_KEY
+        fromService:
+          name: nova-arcade-web
+          type: web
+          envVarKey: APP_KEY
+      - key: DB_URL
+        fromDatabase:
+          name: nova-arcade-db
+          property: connectionString
+
+  - type: cron
+    name: nova-arcade-scheduler
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    schedule: "* * * * *"
+    dockerCommand: php artisan schedule:run --verbose --no-interaction
+    envVars:
+      - fromGroup: nova-arcade-common
+      - key: APP_KEY
+        fromService:
+          name: nova-arcade-web
+          type: web
+          envVarKey: APP_KEY
+      - key: DB_URL
+        fromDatabase:
+          name: nova-arcade-db
+          property: connectionString
