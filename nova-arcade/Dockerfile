@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     libcurl4-openssl-dev \
     libonig-dev \
-    && docker-php-ext-install pdo_pgsql pgsql bcmath intl zip opcache mbstring xml curl pcntl \
+    libsqlite3-dev \
+    && docker-php-ext-install pdo_pgsql pgsql pdo_sqlite bcmath intl zip opcache mbstring xml curl pcntl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
