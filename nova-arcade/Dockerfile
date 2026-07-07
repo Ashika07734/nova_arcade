@@ -49,4 +49,4 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD ["php", "artisan", "serve", "--host", "0.0.0.0", "--port", "10000"]
+CMD ["bash", "-lc", "trap 'kill 0' TERM INT; (while true; do php artisan queue:work --sleep=3 --tries=3 --timeout=90 --max-time=3600 --queue=game-ticks,match-processing,statistics,notifications,maintenance,default || sleep 3; done) & (while true; do php artisan schedule:run --verbose --no-interaction || true; sleep 60; done) & exec php artisan serve --host 0.0.0.0 --port ${PORT:-10000}"]

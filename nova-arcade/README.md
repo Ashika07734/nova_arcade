@@ -67,19 +67,19 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ## Deployment
 
-This app is a Laravel 11 project with Vite assets, database-backed queues/sessions, scheduled jobs, and Reverb websocket support. A production server needs the web app, a queue worker, and a scheduler cron. If you enable live broadcasting in production, add a Reverb process as well.
+This app is a Laravel 11 project with Vite assets, queued game logic, scheduled jobs, and Reverb websocket support. A production server normally needs the web app, a queue worker, and a scheduler cron. The included Render blueprint collapses those roles into one free-tier Docker service, backed by local SQLite and file-based session/cache storage.
 
 ### Render
 
-For Render, use the included [render.yaml](render.yaml) blueprint and [Dockerfile](Dockerfile). The blueprint creates a Postgres database plus three services:
+For Render, use the included [render.yaml](render.yaml) blueprint and [Dockerfile](Dockerfile). The current blueprint is set up for the free tier and uses a single Docker web service:
 
-- `nova-arcade-web` for the public Laravel app
-- `nova-arcade-worker` for queued jobs
-- `nova-arcade-scheduler` for Laravel's scheduled tasks
+- `nova-arcade-web` for the public Laravel app, queue worker, and scheduler loop
 
-Render will prompt you for `APP_KEY` and `APP_URL` the first time you create the blueprint. After the first deploy, the web service runs migrations before start-up and the worker/cron services reuse the same application key.
+Render will prompt you for `APP_KEY` and `APP_URL` the first time you create the blueprint. Before each deploy, the web service creates a local SQLite database file and runs migrations. The repo's example environment is aligned with that setup, so the first deploy should not require paid Render resources.
 
-The current blueprint is a safe first pass for deploying the main application loop. If you want live websocket broadcasting on Render as well, I can add a dedicated Reverb service next.
+This free-tier setup keeps the game loop, queue worker, and scheduler inside the same container. It is suitable for testing and light usage, but it does not provide the persistence or scalability of a paid Render database or dedicated worker/cron services.
+
+If you want live websocket broadcasting on Render as well, I can add a dedicated Reverb service next.
 
 ### Production checklist
 
@@ -87,15 +87,16 @@ The current blueprint is a safe first pass for deploying the main application lo
 	- PHP 8.2+
 	- Composer
 	- Node.js 18+ or 20+
-	- A database such as MySQL or PostgreSQL
+	- SQLite is enough for the free Render blueprint; use MySQL or PostgreSQL only if you move to a paid multi-service deployment
 2. Copy `.env.example` to `.env` and set production values:
 	- `APP_ENV=production`
 	- `APP_DEBUG=false`
 	- `APP_URL=https://your-domain.com`
-	- database credentials
+	- `DB_CONNECTION=sqlite`
+	- `DB_DATABASE=database/database.sqlite`
 	- `QUEUE_CONNECTION=database`
-	- `CACHE_STORE=database`
-	- `SESSION_DRIVER=database`
+	- `CACHE_STORE=file`
+	- `SESSION_DRIVER=file`
 	- Reverb settings if you are using websockets in production
 3. Install and build the app:
 	- `composer install --no-dev --optimize-autoloader`
@@ -109,11 +110,12 @@ The current blueprint is a safe first pass for deploying the main application lo
 	- `php artisan route:cache`
 	- `php artisan view:cache`
 5. Run the long-lived services:
-	- queue worker: `php artisan queue:work --sleep=3 --tries=3 --max-time=3600`
-	- scheduler: add a cron entry for `php artisan schedule:run` every minute
-	- Reverb: `php artisan reverb:start`
+	- free Render blueprint: the container already runs the queue worker and scheduler loop for you
+	- paid multi-service setup: run a separate queue worker, scheduler cron, and Reverb process if you enable websockets
 
 ### Suggested server layout
+
+This layout applies if you move off the free Render blueprint and split the app into separate services.
 
 - Web server: Nginx or Apache pointing at the `public/` directory.
 - Process manager: Supervisor or systemd for the queue worker and Reverb process.
@@ -121,7 +123,7 @@ The current blueprint is a safe first pass for deploying the main application lo
 
 ### Notes for this repo
 
-- The default `.env.example` uses SQLite and local logging for development. Swap those settings for your production database and logging strategy before going live.
-- Game cleanup, leaderboard updates, and daily missions are scheduled in the console kernel, so skipping the cron job will leave those tasks inactive.
+- The default `.env.example` matches the free Render blueprint with SQLite, file sessions, and file cache. Swap those settings only if you move to a different deployment model.
+- Game cleanup, leaderboard updates, and daily missions are scheduled in the console kernel. The free Render blueprint runs the scheduler loop inside the container; separate cron is only needed if you split the services apart.
 - Reverb is the default broadcast driver in this codebase, so real-time features depend on the websocket service being available.
 - The included Render blueprint does not start Reverb yet, so broadcast-backed features will need a follow-up service before production use.

@@ -26,10 +26,6 @@ class Kernel extends ConsoleKernel
             ->dailyAt('00:00')
             ->name('daily-missions')
             ->withoutOverlapping();
-
-        $schedule->command('backup:run')
-            ->dailyAt('02:00')
-            ->name('database-backup');
     }
 
     protected function commands(): void
